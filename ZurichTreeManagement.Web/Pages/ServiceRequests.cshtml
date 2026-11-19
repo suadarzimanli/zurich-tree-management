@@ -1,0 +1,337 @@
+@page
+@model ServiceRequestsModel
+@{
+    Layout = null;
+    ViewData["Title"] = Model.IsGerman ? "Serviceanfragen" : "Service requests";
+}
+<!DOCTYPE html>
+<html lang="@(Model.IsGerman ? "de" : "en")" class="sr-desk-root" data-theme="light">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>@ViewData["Title"] — @(Model.IsGerman ? "Zürich Baumverwaltung" : "Zurich Tree Management")</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
+    <script>
+        (function () {
+            var t = localStorage.getItem('zurich-theme');
+            if (t === 'dark') document.documentElement.setAttribute('data-theme', 'dark');
+        })();
+    </script>
+</head>
+<body class="sr-desk-page">
+    <datalist id="assignee-list"></datalist>
+
+    <header class="desk-header">
+        <div class="desk-header__brand">
+            <a class="desk-header__logo-link" href="/" title="Zurich Tree Management">
+                <span class="desk-header__logo" aria-hidden="true"></span>
+            </a>
+            <div class="desk-header__titles">
+                <a class="desk-header__back" href="/">← <span data-i18n="desk.backMap">Back to map</span></a>
+                <h1 class="desk-header__title" data-i18n="desk.title">Service requests</h1>
+            </div>
+        </div>
+        <div class="desk-header__actions">
+            <a href="/About" class="header-about-btn" data-i18n="nav.about">About</a>
+            <div class="header-toggle" role="group" aria-label="Theme">
+                <button type="button" id="theme-toggle-light" class="header-toggle__btn header-toggle__btn--active" data-theme-value="light" data-i18n-title="theme.light" title="Light mode" aria-pressed="true">
+                    <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="5" fill="currentColor"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+                </button>
+                <button type="button" id="theme-toggle-dark" class="header-toggle__btn" data-theme-value="dark" data-i18n-title="theme.dark" title="Dark mode" aria-pressed="false">
+                    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 14.5A8.5 8.5 0 1112.5 3a6.5 6.5 0 109.5 11.5z" fill="currentColor"/></svg>
+                </button>
+            </div>
+            <div class="header-toggle" role="group" aria-label="Language">
+                <button type="button" id="lang-toggle-en" class="header-toggle__btn @(Model.IsGerman ? "" : "header-toggle__btn--active")" data-lang="en" aria-pressed="@(Model.IsGerman ? "false" : "true")">EN</button>
+                <button type="button" id="lang-toggle-de" class="header-toggle__btn @(Model.IsGerman ? "header-toggle__btn--active" : "")" data-lang="de" aria-pressed="@(Model.IsGerman ? "true" : "false")">DE</button>
+            </div>
+            @if (Model.IsAuthenticated)
+            {
+                <span class="desk-header__user">@Model.UserDisplayName</span>
+                <a class="header-about-btn" href="@Model.LogoutPath" data-i18n="nav.signOut">Sign out</a>
+            }
+            else
+            {
+                <a class="header-about-btn header-about-btn--primary" href="@Model.LoginPath" data-i18n="nav.signIn">Sign in</a>
+            }
+        </div>
+    </header>
+
+    <div class="desk-layout">
+        <section class="desk-queue" aria-labelledby="desk-queue-heading">
+            <div class="desk-queue__head">
+                <div>
+                    <h2 id="desk-queue-heading" data-i18n="desk.listTitle">All service requests</h2>
+                    <p class="desk-queue__hint" data-i18n="desk.queueHint">Select a request to view details, activities, and assignment.</p>
+                </div>
+                <span id="sr-desk-list-status" class="desk-queue__badge" role="status" aria-live="polite"></span>
+            </div>
+
+            <div class="desk-search-bar">
+                <label class="desk-search-bar__field">
+                    <span class="desk-search-bar__icon" aria-hidden="true">⌕</span>
+                    <input type="search" id="desk-filter-search" data-i18n-placeholder="desk.searchPlaceholder" placeholder="SR #, tree, address, contact…" autocomplete="off" />
+                </label>
+                <button type="button" id="desk-filter-toggle" class="desk-btn desk-btn--ghost" aria-expanded="false" aria-controls="desk-filters-panel">
+                    <span data-i18n="desk.filtersToggle">Filters</span>
+                </button>
+                <button type="button" id="desk-filter-apply" class="desk-btn desk-btn--primary" data-i18n="filter.apply">Apply</button>
+            </div>
+
+            <div id="desk-filters-panel" class="desk-filters" hidden>
+                <label class="desk-filter-chip">
+                    <span data-i18n="filter.status">Open or closed</span>
+                    <select id="desk-filter-status">
+                        <option value="" data-i18n="filter.all">All</option>
+                        <option value="In Progress" data-i18n="filter.status.inProgress">Open (in progress)</option>
+                        <option value="Closed" data-i18n="filter.status.closed">Closed</option>
+                    </select>
+                </label>
+                <label class="desk-filter-chip">
+                    <span data-i18n="filter.phase">Current step</span>
+                    <select id="desk-filter-phase">
+                        <option value="" data-i18n="filter.all">All</option>
+                        <option value="sr" data-i18n="filter.phase.sr">Service request</option>
+                        <option value="inspection" data-i18n="filter.phase.inspection">Inspection</option>
+                        <option value="workorder" data-i18n="filter.phase.workorder">Work order</option>
+                        <option value="closed" data-i18n="filter.phase.closed">Closed</option>
+                    </select>
+                </label>
+                <label class="desk-filter-chip">
+                    <span data-i18n="filter.subarea">Category</span>
+                    <select id="desk-filter-subarea">
+                        <option value="" data-i18n="filter.all">All</option>
+                        <option value="Pruning Requests" data-i18n="filter.subarea.pruning">Pruning</option>
+                        <option value="Tree Planting Requests" data-i18n="filter.subarea.planting">Tree planting</option>
+                        <option value="Stump Removal Requests" data-i18n="filter.subarea.stump">Stump removal</option>
+                        <option value="General Information" data-i18n="filter.subarea.info">General information</option>
+                        <option value="Other" data-i18n="filter.subarea.other">Other / urgent</option>
+                    </select>
+                </label>
+                <label class="desk-filter-chip">
+                    <span data-i18n="filter.priority">Priority</span>
+                    <select id="desk-filter-priority">
+                        <option value="" data-i18n="filter.all">All</option>
+                        <option value="Normal" data-i18n="filter.priority.normal">Normal</option>
+                        <option value="Urgent" data-i18n="filter.priority.urgent">Urgent</option>
+                    </select>
+                </label>
+            </div>
+
+            <div id="sr-desk-table-body" class="desk-sr-list" role="list"></div>
+        </section>
+
+        <aside class="desk-record" id="sr-desk-detail">
+            <div id="sr-desk-detail-empty" class="desk-record__empty">
+                <div class="desk-record__empty-icon" aria-hidden="true">📋</div>
+                <h3 data-i18n="desk.emptyTitle">No request selected</h3>
+                <p data-i18n="desk.selectSr">Select a service request from the queue to view and edit details.</p>
+            </div>
+
+            <div id="sr-desk-detail-form" class="desk-record__panel" hidden>
+                <div class="desk-record__hero">
+                    <div class="desk-record__hero-top">
+                        <div>
+                            <p class="desk-record__eyebrow" data-i18n="desk.srHeading">Service request</p>
+                            <h2 class="desk-record__id">SR <span id="sr-desk-detail-number"></span></h2>
+                            <p id="desk-hero-meta" class="desk-record__meta"></p>
+                        </div>
+                        <span id="sr-desk-detail-phase" class="desk-phase-badge"></span>
+                    </div>
+                    <div class="desk-record__hero-actions">
+                        <button type="submit" form="sr-desk-form" id="desk-sr-save" class="desk-btn desk-btn--primary" data-i18n="desk.save">Save changes</button>
+                        <a id="desk-sr-map-link" class="desk-btn desk-btn--secondary" href="/" data-i18n="desk.openOnMap">Open on map</a>
+                    </div>
+                </div>
+
+                <p id="sr-desk-readonly-banner" class="desk-readonly-banner" hidden data-i18n="desk.signInToEdit">Sign in to edit service requests.</p>
+                <p id="sr-desk-detail-message" class="desk-flash" role="status" aria-live="polite" hidden></p>
+
+                <nav class="desk-tabs" role="tablist" aria-label="SR detail sections">
+                    <button type="button" class="desk-tab desk-tab--active" data-desk-tab="overview" role="tab" aria-selected="true" data-i18n="desk.tab.overview">Overview</button>
+                    <button type="button" class="desk-tab" data-desk-tab="details" role="tab" aria-selected="false" data-i18n="desk.tab.details">Details</button>
+                    <button type="button" class="desk-tab" data-desk-tab="inspection" role="tab" aria-selected="false" data-i18n="desk.tab.inspection">Inspection</button>
+                    <button type="button" class="desk-tab" data-desk-tab="workorder" role="tab" aria-selected="false" data-i18n="desk.tab.workorder">Work order</button>
+                    <button type="button" class="desk-tab" data-desk-tab="activities" role="tab" aria-selected="false" data-i18n="desk.tab.activities">Activities</button>
+                </nav>
+
+                <form id="sr-desk-form" class="desk-form" novalidate>
+                    <div id="desk-tab-overview" class="desk-tab-panel" role="tabpanel">
+                        <div class="desk-card">
+                            <h3 class="desk-card__title" data-i18n="desk.section.status">Status &amp; assignment</h3>
+                            <div class="desk-form-grid">
+                                <label class="desk-field"><span data-i18n="field.status">Status</span><select id="desk-sr-status"><option value="In Progress">In Progress</option><option value="Closed">Closed</option></select></label>
+                                <label class="desk-field"><span data-i18n="field.subStatus">Sub-status</span><input type="text" id="desk-sr-substatus" maxlength="128" /></label>
+                                <label class="desk-field"><span data-i18n="field.priority">Priority</span><select id="desk-sr-priority"><option value="Normal">Normal</option><option value="Urgent">Urgent</option></select></label>
+                                <label class="desk-field"><span data-i18n="field.assignedTo">Assigned to</span><input type="text" id="desk-sr-assigned" list="assignee-list" maxlength="128" /></label>
+                            </div>
+                        </div>
+                        <div class="desk-card">
+                            <h3 class="desk-card__title" data-i18n="desk.section.workflow">Workflow</h3>
+                            <div class="desk-workflow-stats">
+                                <div class="desk-stat"><span data-i18n="desk.stat.inspStatus">SR inspection</span><strong id="desk-sr-insp-status">—</strong></div>
+                                <div class="desk-stat"><span data-i18n="desk.stat.woStatus">SR work order</span><strong id="desk-sr-wo-status">—</strong></div>
+                                <div class="desk-stat"><span data-i18n="field.opened">Opened</span><strong id="desk-sr-opened">—</strong></div>
+                                <div class="desk-stat"><span data-i18n="field.closed">Closed</span><strong id="desk-sr-closed">—</strong></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div id="desk-tab-details" class="desk-tab-panel" role="tabpanel" hidden>
+                        <div class="desk-card">
+                            <h3 class="desk-card__title" data-i18n="section.request">Request</h3>
+                            <div class="desk-form-grid">
+                                <label class="desk-field desk-field--wide"><span data-i18n="field.requestTypePlain">Request type</span><input type="text" id="desk-sr-request-type" readonly /></label>
+                                <label class="desk-field"><span data-i18n="field.subArea">Sub-area</span><input type="text" id="desk-sr-subarea" readonly /></label>
+                                <label class="desk-field desk-field--wide"><span data-i18n="field.description">Description</span><textarea id="desk-sr-description" rows="4"></textarea></label>
+                            </div>
+                        </div>
+                        <div class="desk-card">
+                            <h3 class="desk-card__title" data-i18n="field.location">Location</h3>
+                            <div class="desk-form-grid">
+                                <label class="desk-field desk-field--wide"><span data-i18n="field.location">Location</span><input type="text" id="desk-sr-address" /></label>
+                                <label class="desk-field"><span data-i18n="desk.latitude">Latitude</span><input type="text" id="desk-sr-lat" readonly /></label>
+                                <label class="desk-field"><span data-i18n="desk.longitude">Longitude</span><input type="text" id="desk-sr-lng" readonly /></label>
+                            </div>
+                        </div>
+                        <div class="desk-card">
+                            <h3 class="desk-card__title" data-i18n="section.contact">Contact</h3>
+                            <div class="desk-form-grid">
+                                <label class="desk-field"><span data-i18n="field.firstName">First name *</span><input type="text" id="desk-sr-first" maxlength="128" /></label>
+                                <label class="desk-field"><span data-i18n="field.lastName">Last name *</span><input type="text" id="desk-sr-last" maxlength="128" /></label>
+                                <label class="desk-field"><span data-i18n="field.email">Email *</span><input type="email" id="desk-sr-email" maxlength="256" /></label>
+                                <label class="desk-field"><span data-i18n="field.phone">Phone</span><input type="text" id="desk-sr-phone" maxlength="64" /></label>
+                            </div>
+                        </div>
+                        <div class="desk-card">
+                            <h3 class="desk-card__title" data-i18n="section.linkedTreeOgd">Linked tree (OGD)</h3>
+                            <div class="desk-form-grid">
+                                <label class="desk-field"><span data-i18n="field.linkedTree">Linked tree</span><input type="text" id="desk-sr-tree" readonly /></label>
+                                <label class="desk-field"><span data-i18n="field.speciesGerman">Species (German)</span><input type="text" id="desk-sr-species" readonly /></label>
+                                <label class="desk-field"><span data-i18n="field.street">Street</span><input type="text" id="desk-sr-street" readonly /></label>
+                                <label class="desk-field"><span data-i18n="field.quarter">Quarter</span><input type="text" id="desk-sr-quartier" readonly /></label>
+                            </div>
+                        </div>
+                    </div>
+                </form>
+
+                <div id="desk-tab-inspection" class="desk-tab-panel" role="tabpanel" hidden>
+                    <div id="desk-inspection-empty" class="desk-record__empty desk-record__empty--inline" hidden>
+                        <p data-i18n="wf.inspection.empty">No inspection exists for this service request yet.</p>
+                        <button type="button" id="desk-create-inspection" class="desk-btn desk-btn--primary" data-i18n="wf.btn.createInspection">Create inspection</button>
+                    </div>
+                    <form id="desk-inspection-form" class="desk-form" novalidate hidden>
+                        <div class="desk-card">
+                            <h3 class="desk-card__title" data-i18n="wf.card.inspection">Inspection for this SR</h3>
+                            <div class="desk-form-grid">
+                                <label class="desk-field"><span data-i18n="field.inspectionId">Inspection ID</span><input type="text" id="desk-inspection-id" readonly /></label>
+                                <label class="desk-field"><span data-i18n="field.srNumber">SR number</span><input type="text" id="desk-inspection-sr" readonly /></label>
+                                <label class="desk-field"><span data-i18n="field.linkedTree">Linked tree</span><input type="text" id="desk-inspection-tree" readonly /></label>
+                                <label class="desk-field"><span data-i18n="field.subArea">Sub-area</span><input type="text" id="desk-inspection-subarea" readonly /></label>
+                                <label class="desk-field desk-field--wide"><span data-i18n="field.status">Status *</span><select id="desk-inspection-status" required><option value="Created">Created</option></select></label>
+                                <label class="desk-field"><span data-i18n="field.inspector">Inspector</span><input type="text" id="desk-inspection-inspector" list="assignee-list" maxlength="128" /></label>
+                                <label class="desk-field"><span data-i18n="field.inspectDate">Inspect date</span><input type="date" id="desk-inspection-date" /></label>
+                                <label class="desk-field"><span data-i18n="field.findings">Findings</span><select id="desk-inspection-findings"><option value="">—</option><option value="Healthy" data-i18n="enum.finding.healthy">Healthy</option><option value="Defect" data-i18n="enum.finding.defect">Defect</option><option value="Hazard" data-i18n="enum.finding.hazard">Hazard</option><option value="Wrong tree" data-i18n="enum.finding.wrongTree">Wrong tree</option></select></label>
+                                <label class="desk-field"><span data-i18n="field.priority">Priority</span><select id="desk-inspection-priority"><option value="Normal" data-i18n="enum.priority.normal">Normal</option><option value="Urgent" data-i18n="enum.priority.urgent">Urgent</option></select></label>
+                                <label class="desk-field desk-field--inline"><span data-i18n="field.ehap">EHAP</span><input type="checkbox" id="desk-inspection-ehap" /></label>
+                                <label class="desk-field desk-field--wide" id="desk-workorder-type-row" hidden><span data-i18n="field.workOrderTypeRes">Work order type (Resolution) *</span><select id="desk-workorder-type"><option value="Unassigned">Unassigned</option></select></label>
+                                <label class="desk-field desk-field--wide"><span data-i18n="field.comment">Comment</span><textarea id="desk-inspection-comment" rows="3" data-i18n-placeholder="wf.inspCommentPlaceholder" placeholder="Required when closing (No Work or Resolution)"></textarea></label>
+                                <label class="desk-field desk-field--wide"><span data-i18n="field.internalComment">Internal comment</span><textarea id="desk-inspection-internal" rows="2"></textarea></label>
+                            </div>
+                            <button type="submit" id="desk-inspection-save" class="desk-btn desk-btn--primary" data-i18n="wf.btn.saveInspection">Save inspection</button>
+                        </div>
+                    </form>
+                </div>
+
+                <div id="desk-tab-workorder" class="desk-tab-panel" role="tabpanel" hidden>
+                    <div id="desk-workorder-empty" class="desk-record__empty desk-record__empty--inline" hidden>
+                        <p data-i18n="wf.workorder.empty">No work order exists for this service request yet.</p>
+                    </div>
+                    <form id="desk-workorder-form" class="desk-form" novalidate hidden>
+                        <div class="desk-card">
+                            <h3 class="desk-card__title" data-i18n="wf.card.workorder">Work order for this SR</h3>
+                            <div class="desk-form-grid">
+                                <label class="desk-field"><span data-i18n="field.workOrderId">Work order ID</span><input type="text" id="desk-workorder-id" readonly /></label>
+                                <label class="desk-field"><span data-i18n="field.srNumber">SR number</span><input type="text" id="desk-workorder-sr" readonly /></label>
+                                <label class="desk-field"><span data-i18n="field.linkedTree">Linked tree</span><input type="text" id="desk-workorder-tree" readonly /></label>
+                                <label class="desk-field desk-field--wide"><span data-i18n="field.status">Status *</span><select id="desk-workorder-status" required><option value="Created">Created</option></select></label>
+                                <label class="desk-field"><span data-i18n="field.workOrderType">Work order type</span><input type="text" id="desk-workorder-type-wo" readonly /></label>
+                                <label class="desk-field"><span data-i18n="field.priority">Priority</span><input type="text" id="desk-workorder-priority" readonly /></label>
+                                <label class="desk-field"><span data-i18n="field.inspector">Inspector</span><input type="text" id="desk-workorder-inspby" readonly /></label>
+                                <label class="desk-field"><span data-i18n="field.startDate">Start date</span><input type="text" id="desk-workorder-start" readonly /></label>
+                                <label class="desk-field"><span data-i18n="field.workDate">Work date *</span><input type="date" id="desk-workorder-date" required /></label>
+                                <label class="desk-field desk-field--wide"><span data-i18n="field.contractor">Contractor</span><input type="text" id="desk-workorder-contractor" list="assignee-list" /></label>
+                                <label class="desk-field"><span data-i18n="field.assignedTo">Assigned to</span><input type="text" id="desk-workorder-assigned" list="assignee-list" maxlength="128" /></label>
+                                <label class="desk-field"><span data-i18n="field.projectCode">Project code</span><input type="text" id="desk-workorder-project" maxlength="64" /></label>
+                                <label class="desk-field desk-field--wide"><span data-i18n="field.fieldComments">Field comments</span><textarea id="desk-workorder-field" rows="3" data-i18n-placeholder="wf.woFieldPlaceholder" placeholder="Required when resolving (or use internal comment)"></textarea></label>
+                                <label class="desk-field desk-field--wide"><span data-i18n="field.internalComment">Internal comment</span><textarea id="desk-workorder-internal" rows="2"></textarea></label>
+                            </div>
+                            <button type="submit" id="desk-workorder-save" class="desk-btn desk-btn--primary" data-i18n="wf.btn.saveWorkorder">Save work order</button>
+                        </div>
+                    </form>
+                </div>
+
+                <div id="desk-tab-activities" class="desk-tab-panel" role="tabpanel" hidden>
+                        <div class="desk-card" id="desk-activity-plan-section" hidden>
+                            <h3 class="desk-card__title" data-i18n="desk.section.activityPlan">Activity plan</h3>
+                            <p id="desk-plan-name" class="desk-plan-name"></p>
+                            <ol id="desk-plan-steps" class="desk-plan-steps"></ol>
+                        </div>
+                        <div class="desk-card" id="desk-activities-section" hidden>
+                            <div class="desk-card__head">
+                                <h3 class="desk-card__title" data-i18n="desk.section.activities">Activities</h3>
+                                <button type="button" id="desk-activity-add-toggle" class="desk-btn desk-btn--ghost desk-btn--sm" data-i18n="desk.addNote">Add note</button>
+                            </div>
+                            <div id="desk-add-activity" class="desk-add-note" hidden>
+                                <label class="desk-field desk-field--wide">
+                                    <span data-i18n="desk.noteSubject">Note subject</span>
+                                    <input type="text" id="desk-activity-subject" maxlength="256" data-i18n-placeholder="desk.noteSubjectPlaceholder" placeholder="e.g. Called citizen back" />
+                                </label>
+                                <label class="desk-field desk-field--wide">
+                                    <span data-i18n="field.comment">Comment</span>
+                                    <textarea id="desk-activity-notes" rows="2" data-i18n-placeholder="desk.notePlaceholder" placeholder="Optional details"></textarea>
+                                </label>
+                                <div class="desk-form-grid">
+                                    <label class="desk-field">
+                                        <span data-i18n="field.assignedTo">Assigned to</span>
+                                        <input type="text" id="desk-activity-assigned" list="assignee-list" maxlength="128" />
+                                    </label>
+                                    <label class="desk-field">
+                                        <span data-i18n="desk.dueDate">Due date</span>
+                                        <input type="date" id="desk-activity-due" />
+                                    </label>
+                                </div>
+                                <button type="button" id="desk-activity-add-btn" class="desk-btn desk-btn--primary desk-btn--sm" data-i18n="desk.postNote">Post note</button>
+                            </div>
+                            <div id="desk-activities-list" class="desk-activity-list" role="list"></div>
+                        </div>
+                    </div>
+            </div>
+        </aside>
+    </div>
+
+    <script>
+        window.ZURICH_DESK = {
+            srListUrl: '@Model.SrListPath',
+            srGetUrl: '@Model.SrGetPath',
+            srUpdateUrl: '@Model.SrUpdatePath',
+            activitiesUrl: '@Model.ActivitiesPath',
+            activityUpdateUrl: '@Model.ActivityUpdatePath',
+            inspectionCreateUrl: '@Model.InspectionCreatePath',
+            inspectionUpdateUrl: '@Model.InspectionUpdatePath',
+            workOrderUpdateUrl: '@Model.WorkOrderUpdatePath',
+            assigneesUrl: '/api/users/assignees',
+            loginPath: '@Model.LoginPath',
+            isAuthenticated: @(Model.IsAuthenticated ? "true" : "false"),
+            locale: '@Model.Culture'
+        };
+    </script>
+    <script src="~/js/i18n.js" asp-append-version="true"></script>
+    <script src="~/js/header-controls.js" asp-append-version="true"></script>
+    <script src="~/js/assignees.js" asp-append-version="true"></script>
+    <script src="~/js/sr-desk.js" asp-append-version="true"></script>
+</body>
+</html>

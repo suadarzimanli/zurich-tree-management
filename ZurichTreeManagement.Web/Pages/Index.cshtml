@@ -1,0 +1,530 @@
+﻿@page
+@model IndexModel
+@{
+    Layout = null;
+    ViewData["Title"] = "Zürich Baumkataster";
+}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>@ViewData["Title"]</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
+    <script>
+        (function () {
+            var t = localStorage.getItem('zurich-theme');
+            if (t === 'dark') document.documentElement.setAttribute('data-theme', 'dark');
+        })();
+    </script>
+</head>
+<body>
+    <datalist id="assignee-list"></datalist>
+    <div class="app-shell" id="app-shell">
+        <nav class="app-rail" aria-label="Main navigation">
+            <a class="app-rail__brand" href="/" title="Zurich Tree Management" aria-label="Home">
+                <span class="app-rail__logo" aria-hidden="true"></span>
+            </a>
+            <div class="app-rail__actions">
+                <button type="button" id="rail-filter" class="app-rail__btn" title="Filters" aria-label="Filters" aria-expanded="false">
+                    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5h16v2H4V5zm3 6h10v2H7v-2zm3 6h4v2h-4v-2z" fill="currentColor"/></svg>
+                </button>
+                <div class="app-rail__group">
+                    <button type="button" id="rail-map" class="app-rail__btn" title="Map view" aria-label="Map view" aria-expanded="false">
+                        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 6l7-3 7 3 4-2v15l-7 3-7-3-4 2V6zm7-1.2L5 7.1v10.3l5 2.1V4.8zm2 12.5l5-2.1V7.1l-5 2.1v8.1zM19 6.7l-5 2.1v10.3l5-2.1V6.7z" fill="currentColor"/></svg>
+                    </button>
+                    <div id="map-type-submenu" class="app-rail__submenu" hidden>
+                        <button type="button" class="app-rail__submenu-btn" data-map-type="roadmap" title="Standard map">
+                            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 6l7-3 7 3 4-2v15l-7 3-7-3-4 2V6z" fill="currentColor"/></svg>
+                            <span>Standard</span>
+                        </button>
+                        <button type="button" class="app-rail__submenu-btn" data-map-type="terrain" title="Terrain">
+                            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 18l5-8 4 5 3-4 6 7H3z" fill="currentColor"/></svg>
+                            <span>Terrain</span>
+                        </button>
+                    </div>
+                </div>
+                <div class="app-rail__group">
+                    <button type="button" id="rail-satellite" class="app-rail__btn" title="Satellite view" aria-label="Satellite view" aria-expanded="false">
+                        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2a10 10 0 100 20 10 10 0 000-20zm0 2c1.5 0 2.9.4 4.1 1.1L5.1 16.1A7.96 7.96 0 0112 4zm0 16a7.96 7.96 0 01-6.9-4.1l10.9-10.9A7.96 7.96 0 0112 20z" fill="currentColor"/></svg>
+                    </button>
+                    <div id="satellite-type-submenu" class="app-rail__submenu" hidden>
+                        <button type="button" class="app-rail__submenu-btn" data-map-type="hybrid" title="Satellite with labels">
+                            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2a10 10 0 100 20 10 10 0 000-20zm0 2c1.5 0 2.9.4 4.1 1.1L5.1 16.1A7.96 7.96 0 0112 4z" fill="currentColor"/></svg>
+                            <span>Labels</span>
+                        </button>
+                        <button type="button" class="app-rail__submenu-btn" data-map-type="satellite" title="Satellite only">
+                            <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8" fill="currentColor"/></svg>
+                            <span>Satellite</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+            <div class="app-rail__footer">
+                <a id="rail-logout" class="app-rail__btn" href="@(Model.IsAuthenticated ? Model.LogoutPath : Model.LoginPath)" title="@(Model.IsAuthenticated ? "Sign out" : "Sign in")" aria-label="@(Model.IsAuthenticated ? "Sign out" : "Sign in")">
+                    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M10 3H5a2 2 0 00-2 2v14a2 2 0 002 2h5v-2H5V5h5V3zm11 9l-4-4v3H9v2h8v3l4-4z" fill="currentColor"/></svg>
+                </a>
+            </div>
+        </nav>
+
+        <aside id="filter-drawer" class="filter-drawer" hidden aria-hidden="true" aria-labelledby="filter-drawer-title">
+            <div class="filter-drawer__header">
+                <h2 id="filter-drawer-title" data-i18n="filter.title">Filters</h2>
+                <button type="button" id="filter-drawer-close" class="filter-drawer__close" data-i18n-aria="filter.close" aria-label="Close filters">×</button>
+            </div>
+
+            <div class="filter-sr-load" aria-labelledby="filter-sr-load-title">
+                <h3 id="filter-sr-load-title" class="filter-sr-load__title" data-i18n="filter.srMapSection">Service requests on map</h3>
+                <button type="button" id="filter-load-all-srs" class="filter-btn filter-btn--primary filter-sr-load__btn" data-i18n="filter.loadAllSrs">Load all SRs</button>
+                <label class="filter-field filter-sr-load__scope">
+                    <span data-i18n="filter.includeClosed">Closed SRs also</span>
+                    <select id="filter-sr-load-scope">
+                        <option value="open" data-i18n="filter.srScopeNo">No — open SRs only</option>
+                        <option value="all" data-i18n="filter.srScopeYes">Yes — include closed SRs</option>
+                    </select>
+                </label>
+                <p id="filter-load-all-msg" class="filter-hint" role="status"></p>
+            </div>
+
+            <div class="filter-drawer__body">
+                <form id="filter-form" class="filter-form" novalidate>
+                    <h3 class="filter-section-title filter-section-title--first" data-i18n="filter.navigateSection">Find on map</h3>
+                    <label class="filter-field filter-field--search">
+                        <span class="filter-field__icon" aria-hidden="true">⌕</span>
+                        <input type="search" id="filter-location" data-i18n-placeholder="filter.searchPlaceholder" placeholder="Search address…" autocomplete="off" />
+                    </label>
+                    <p class="filter-hint filter-hint--sub" data-i18n="filter.searchHint">Start typing — address suggestions appear automatically.</p>
+                    <button type="button" id="filter-location-go" class="filter-btn filter-btn--secondary" data-i18n="filter.goToLocation">Go to location</button>
+                    <p id="filter-location-msg" class="filter-hint" role="status"></p>
+
+                    <label class="filter-field filter-field--search">
+                        <span class="filter-field__icon filter-field__icon--tree" aria-hidden="true">🌳</span>
+                        <input type="search" id="filter-baumnummer" data-i18n-placeholder="filter.baumnummerPlaceholder" placeholder="Baumnummer…" autocomplete="off" inputmode="text" />
+                    </label>
+                    <button type="button" id="filter-baumnummer-go" class="filter-btn filter-btn--secondary" data-i18n="filter.findTree">Find tree on map</button>
+                    <p id="filter-baumnummer-msg" class="filter-hint" role="status"></p>
+
+                    <h3 class="filter-section-title" data-i18n="filter.pinSection">Filter pins on map</h3>
+                    <p class="filter-hint filter-hint--sub" data-i18n="filter.pinHint">Narrows which service requests appear after you load or apply filters.</p>
+                    <label class="filter-field">
+                        <span data-i18n="filter.status">Open or closed</span>
+                        <select id="filter-status">
+                            <option value="" data-i18n="filter.all">All</option>
+                            <option value="In Progress" data-i18n="filter.status.inProgress">Open (in progress)</option>
+                            <option value="Closed" data-i18n="filter.status.closed">Closed</option>
+                        </select>
+                    </label>
+                    <label class="filter-field">
+                        <span data-i18n="filter.phase">Current step</span>
+                        <select id="filter-phase">
+                            <option value="" data-i18n="filter.all">All</option>
+                            <option value="sr" data-i18n="filter.phase.sr">Service request</option>
+                            <option value="inspection" data-i18n="filter.phase.inspection">Inspection</option>
+                            <option value="workorder" data-i18n="filter.phase.workorder">Work order</option>
+                            <option value="closed" data-i18n="filter.phase.closed">Closed</option>
+                        </select>
+                    </label>
+                    <label class="filter-field">
+                        <span data-i18n="filter.subarea">Category</span>
+                        <select id="filter-subarea">
+                            <option value="" data-i18n="filter.all">All</option>
+                            <option value="Pruning Requests" data-i18n="filter.subarea.pruning">Pruning</option>
+                            <option value="Tree Planting Requests" data-i18n="filter.subarea.planting">Tree planting</option>
+                            <option value="Stump Removal Requests" data-i18n="filter.subarea.stump">Stump removal</option>
+                            <option value="General Information" data-i18n="filter.subarea.info">General information</option>
+                            <option value="Other" data-i18n="filter.subarea.other">Other / urgent</option>
+                        </select>
+                    </label>
+                    <label class="filter-field">
+                        <span data-i18n="filter.priority">Priority</span>
+                        <select id="filter-priority">
+                            <option value="" data-i18n="filter.all">All</option>
+                            <option value="Normal" data-i18n="filter.priority.normal">Normal</option>
+                            <option value="Urgent" data-i18n="filter.priority.urgent">Urgent</option>
+                        </select>
+                    </label>
+                    <label class="filter-field">
+                        <span data-i18n="filter.whenOpened">When opened</span>
+                        <select id="filter-created-preset">
+                            <option value="" data-i18n="filter.createdAny">Any time</option>
+                            <option value="last-7" data-i18n="filter.preset.last7">Last 7 days</option>
+                            <option value="last-30" data-i18n="filter.preset.last30">Last 30 days</option>
+                            <option value="last-365" data-i18n="filter.preset.lastYear">Last year</option>
+                            <option value="older-30" data-i18n="filter.preset.older30">Older than 30 days</option>
+                            <option value="older-365" data-i18n="filter.preset.olderYear">Older than 1 year</option>
+                        </select>
+                    </label>
+
+                    <div class="filter-actions">
+                        <button type="submit" class="filter-btn filter-btn--primary" data-i18n="filter.apply">Apply filters</button>
+                        <button type="button" id="filter-reset" class="filter-btn filter-btn--ghost" data-i18n="filter.clear">Clear</button>
+                    </div>
+                    <p id="filter-result-count" class="filter-hint"></p>
+                </form>
+            </div>
+        </aside>
+
+        <div class="app-main">
+            <header class="app-header">
+                <h1 class="app-header__title" data-i18n="app.title">Zurich Tree Management</h1>
+                <div class="app-header__right">
+                    <div class="header-toolbar">
+                        <div class="header-zoom-badge" id="header-zoom-badge" data-i18n-title="header.zoom" data-i18n-aria="header.zoom" title="Map zoom" aria-label="Map zoom level">
+                            <span id="header-zoom-value">@Model.InitialZoom</span>
+                        </div>
+                        <div class="header-toggle" role="group" aria-label="Theme">
+                            <button type="button" id="theme-toggle-light" class="header-toggle__btn header-toggle__btn--active" data-theme-value="light" data-i18n-title="theme.light" title="Light mode" aria-pressed="true">
+                                <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="5" fill="currentColor"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+                            </button>
+                            <button type="button" id="theme-toggle-dark" class="header-toggle__btn" data-theme-value="dark" data-i18n-title="theme.dark" title="Dark mode" aria-pressed="false">
+                                <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 14.5A8.5 8.5 0 1112.5 3a6.5 6.5 0 109.5 11.5z" fill="currentColor"/></svg>
+                            </button>
+                        </div>
+                        <div class="header-toggle" role="group" aria-label="Language">
+                            <button type="button" id="lang-toggle-en" class="header-toggle__btn header-toggle__btn--active" data-lang="en" aria-pressed="true">EN</button>
+                            <button type="button" id="lang-toggle-de" class="header-toggle__btn" data-lang="de" aria-pressed="false">DE</button>
+                        </div>
+                        <a href="/ServiceRequests" class="header-about-btn" data-i18n="nav.serviceRequests">Service requests</a>
+                        <a href="/About" class="header-about-btn" data-i18n="nav.about">About</a>
+                    </div>
+                    <div class="app-header__user">
+                    @if (Model.IsAuthenticated)
+                    {
+                        <span class="app-header__name">@Model.UserDisplayName</span>
+                        @if (!string.IsNullOrEmpty(Model.UserRole))
+                        {
+                            <span class="app-header__role">@Model.UserRole</span>
+                        }
+                    }
+                    else
+                    {
+                        <a class="app-header__signin" href="@Model.LoginPath" data-i18n="nav.signIn">Sign in</a>
+                    }
+                    </div>
+                </div>
+            </header>
+            <div id="map-shell" class="app-map-canvas">
+        <div id="map-status" class="map-status" role="status" aria-live="polite">
+            Stadt Zürich — Baumkataster (OGD). Trees &amp; SRs visible from zoom @Model.MinTreeLayerZoom+; clickable from zoom @Model.MinTreeClickZoom+.
+        </div>
+        <div class="map-map-overlays">
+            <aside id="map-legend" class="map-legend map-legend--collapsed" aria-labelledby="map-legend-title">
+                <button type="button" id="map-legend-toggle" class="map-legend__toggle" aria-expanded="false" aria-controls="map-legend-body">
+                    <span class="map-legend__toggle-pin" aria-hidden="true"></span>
+                    <span data-i18n="map.legend.toggle">Legend</span>
+                </button>
+                <div id="map-legend-body" class="map-legend__body" hidden>
+                    <p id="map-legend-title" class="map-legend__title" data-i18n="map.legend.title">Map pins</p>
+                    <p class="map-legend__subtitle" data-i18n="map.legend.phases">Workflow step (pin colour)</p>
+                    <ul class="map-legend__list map-legend__list--phases">
+                        <li><span class="map-legend__swatch map-legend__swatch--sr" aria-hidden="true"></span><span data-i18n="filter.phase.sr">Service request</span></li>
+                        <li><span class="map-legend__swatch map-legend__swatch--inspection" aria-hidden="true"></span><span data-i18n="filter.phase.inspection">Inspection</span></li>
+                        <li><span class="map-legend__swatch map-legend__swatch--workorder" aria-hidden="true"></span><span data-i18n="filter.phase.workorder">Work order</span></li>
+                        <li><span class="map-legend__swatch map-legend__swatch--closed" aria-hidden="true"></span><span data-i18n="filter.phase.closed">Closed</span></li>
+                    </ul>
+                    <p class="map-legend__subtitle" data-i18n="map.legend.categories">Category (icon on pin)</p>
+                    <ul class="map-legend__list map-legend__list--categories">
+                        <li><span class="map-legend__glyph" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M4 20 L8.5 6.5 L10.5 9.5 L13.5 4 L18.5 8.5 L14 11.5 L17.5 20 Z" fill="currentColor"/></svg></span><span data-i18n="filter.subarea.pruning">Pruning</span></li>
+                        <li><span class="map-legend__glyph" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M12 21 V13.5" stroke="currentColor" stroke-width="2" stroke-linecap="round" fill="none"/><path d="M12 13.5 C8 13.5 5.5 9.5 6 6.5 C9.5 6.5 11.5 10 12 13.5 C12.5 10 14.5 6.5 18 6.5 C18.5 9.5 16 13.5 12 13.5 Z" fill="currentColor"/></svg></span><span data-i18n="filter.subarea.planting">Tree planting</span></li>
+                        <li><span class="map-legend__glyph" aria-hidden="true"><svg viewBox="0 0 24 24"><ellipse cx="12" cy="10" rx="6" ry="2.2" fill="currentColor"/><path d="M7.5 10 V16 H16.5 V10" fill="currentColor"/></svg></span><span data-i18n="filter.subarea.stump">Stump removal</span></li>
+                        <li><span class="map-legend__glyph" aria-hidden="true"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5" fill="none" stroke="currentColor" stroke-width="2"/><rect x="11" y="10.5" width="2" height="7" rx="1" fill="currentColor"/><circle cx="12" cy="7.5" r="1.3" fill="currentColor"/></svg></span><span data-i18n="filter.subarea.info">General information</span></li>
+                        <li><span class="map-legend__glyph" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M12 21 V14.5" stroke="currentColor" stroke-width="2" stroke-linecap="round" fill="none"/><path d="M12 14.5 C8.5 14.5 6 11 6.5 8 C9.5 8 11.5 11.5 12 14.5 C14.5 11.5 17.5 8 18 8 C18 11 15.5 14.5 12 14.5 Z" fill="currentColor"/></svg></span><span data-i18n="filter.subarea.other">Other / urgent</span></li>
+                    </ul>
+                </div>
+            </aside>
+            <div id="map-empty-hint" class="map-empty-hint" role="status" aria-live="polite">
+                <p class="map-empty-hint__text"></p>
+            </div>
+        </div>
+        @if (Model.HasGoogleMapsKey)
+        {
+            <div id="map"></div>
+            <div id="map-pick-sheet" class="map-pick-sheet" hidden aria-hidden="true" role="dialog" aria-labelledby="map-pick-sheet-title">
+                <div class="map-pick-sheet__backdrop" data-map-pick-dismiss></div>
+                <div class="map-pick-sheet__panel">
+                    <button type="button" id="map-pick-popup-close" class="map-pick-sheet__close" data-i18n-aria="map.pick.close" aria-label="Close">×</button>
+                    <h2 id="map-pick-sheet-title" class="map-pick-sheet__title" data-i18n="map.pick.title">Items in clicked area</h2>
+                    <p id="map-pick-sheet-summary" class="map-pick-sheet__summary" aria-live="polite"></p>
+                    <p id="map-pick-sheet-hint" class="map-pick-sheet__hint" data-i18n="map.pick.hint">Tap a card to open its details.</p>
+                    <div id="map-pick-popup-list" class="map-pick-sheet__cards" role="list"></div>
+                </div>
+            </div>
+            <aside id="tree-detail-panel" class="side-panel tree-detail-panel" hidden aria-hidden="true" aria-labelledby="tree-detail-heading">
+                <div class="side-panel__header">
+                    <div class="side-panel__title-wrap">
+                        <h2 id="tree-detail-heading" data-i18n="tree.panel.title">Tree details</h2>
+                        <span id="tree-detail-title" class="side-panel__badge"></span>
+                    </div>
+                    <button type="button" id="tree-detail-close" class="side-panel__close" data-i18n-aria="tree.panel.close" aria-label="Close">×</button>
+                </div>
+                <div class="side-panel__body">
+                    <p class="tree-detail-source" data-i18n="tree.panel.source">Official Stadt Zürich Baumkataster (OGD) — read-only</p>
+                    <div class="wf-grid">
+                        <label class="wf-field"><span data-i18n="field.baumnummer">Baumnummer</span><input type="text" id="tree-detail-baumnummer" readonly /></label>
+                        <label class="wf-field"><span data-i18n="field.objectId">Object ID</span><input type="text" id="tree-detail-objectid" readonly /></label>
+                        <label class="wf-field wf-field--wide"><span data-i18n="field.speciesLatin">Species (Latin)</span><input type="text" id="tree-detail-species-lat" readonly /></label>
+                        <label class="wf-field wf-field--wide"><span data-i18n="field.speciesGerman">Species (German)</span><input type="text" id="tree-detail-species-de" readonly /></label>
+                        <label class="wf-field"><span data-i18n="field.quarter">Quarter</span><input type="text" id="tree-detail-quarter" readonly /></label>
+                        <label class="wf-field wf-field--wide"><span data-i18n="field.street">Street</span><input type="text" id="tree-detail-street" readonly /></label>
+                        <label class="wf-field"><span data-i18n="field.category">Category</span><input type="text" id="tree-detail-category" readonly /></label>
+                        <label class="wf-field"><span data-i18n="field.status">Status</span><input type="text" id="tree-detail-status" readonly /></label>
+                        <label class="wf-field"><span data-i18n="field.crownDiameter">Crown diameter</span><input type="text" id="tree-detail-crown" readonly /></label>
+                        <label class="wf-field"><span data-i18n="field.planted">Planted</span><input type="text" id="tree-detail-planted" readonly /></label>
+                        <label class="wf-field"><span data-i18n="field.sizeClass">Size class</span><input type="text" id="tree-detail-size" readonly /></label>
+                    </div>
+                </div>
+            </aside>
+            <aside id="sr-create-panel" class="side-panel sr-create-panel" hidden aria-hidden="true" aria-labelledby="sr-create-title">
+                <div class="side-panel__header">
+                    <h2 id="sr-create-title" data-i18n="sr.panel.title">Create Service Request</h2>
+                    <button type="button" id="sr-close" class="side-panel__close" data-i18n-aria="tree.panel.close" aria-label="Close">×</button>
+                </div>
+                <div class="side-panel__body">
+                <form id="sr-create-form" class="sr-create-form" novalidate>
+                    <p id="sr-create-message" class="sr-create-message" role="status" aria-live="polite"></p>
+
+                    <section class="sr-create-section">
+                        <h3 data-i18n="section.linkedTreeOgd">Linked tree (OGD)</h3>
+                        <div class="sr-create-grid">
+                            <label class="sr-create-field">
+                                <span data-i18n="field.linkedTree">Linked Tree</span>
+                                <input type="text" id="sr-linked-tree" readonly />
+                            </label>
+                            <label class="sr-create-field">
+                                <span data-i18n="field.speciesGerman">Species (German)</span>
+                                <input type="text" id="sr-species-de" readonly />
+                            </label>
+                            <label class="sr-create-field">
+                                <span data-i18n="field.speciesLatin">Species (Latin)</span>
+                                <input type="text" id="sr-species-lat" readonly />
+                            </label>
+                            <label class="sr-create-field">
+                                <span data-i18n="field.quarter">Quarter</span>
+                                <input type="text" id="sr-quarter" readonly />
+                            </label>
+                            <label class="sr-create-field sr-create-field--wide">
+                                <span data-i18n="field.street">Street</span>
+                                <input type="text" id="sr-street" readonly />
+                            </label>
+                        </div>
+                    </section>
+
+                    <section class="sr-create-section">
+                        <h3 data-i18n="section.contact">Contact</h3>
+                        <div class="sr-create-grid">
+                            <label class="sr-create-field">
+                                <span data-i18n="field.firstName">First name *</span>
+                                <input type="text" id="sr-first-name" required autocomplete="given-name" />
+                            </label>
+                            <label class="sr-create-field">
+                                <span data-i18n="field.lastName">Last name *</span>
+                                <input type="text" id="sr-last-name" required autocomplete="family-name" />
+                            </label>
+                            <label class="sr-create-field">
+                                <span data-i18n="field.email">Email *</span>
+                                <input type="email" id="sr-email" required autocomplete="email" />
+                            </label>
+                            <label class="sr-create-field">
+                                <span data-i18n="field.phone">Phone</span>
+                                <input type="tel" id="sr-phone" autocomplete="tel" />
+                            </label>
+                        </div>
+                    </section>
+
+                    <section class="sr-create-section">
+                        <h3 data-i18n="section.request">Request</h3>
+                        <label class="sr-create-field sr-create-field--wide">
+                            <span data-i18n="field.requestType">Request type *</span>
+                            <select id="sr-request-type" required>
+                                <option value="" data-i18n="sr.selectRequestType">— Select request type —</option>
+                            </select>
+                        </label>
+                        <label class="sr-create-field sr-create-field--wide">
+                            <span data-i18n="field.description">Description</span>
+                            <textarea id="sr-description" rows="3" data-i18n-placeholder="sr.descPlaceholder" placeholder="Optional details for the forestry team"></textarea>
+                        </label>
+                        <label class="sr-create-field sr-create-field--wide">
+                            <span data-i18n="field.location">Location</span>
+                            <input type="text" id="sr-address" readonly />
+                        </label>
+                        <input type="hidden" id="sr-lat" />
+                        <input type="hidden" id="sr-lng" />
+                    </section>
+
+                    <div class="sr-create-actions">
+                        <button type="submit" id="sr-submit" class="sr-create-btn sr-create-btn--primary" data-i18n="sr.btn.create">Create SR</button>
+                        <button type="button" id="sr-cancel" class="sr-create-btn sr-create-btn--secondary" data-i18n="sr.btn.cancel">Cancel</button>
+                    </div>
+                </form>
+                </div>
+            </aside>
+            <aside id="workflow-panel" class="side-panel workflow-panel" hidden aria-hidden="true" aria-labelledby="workflow-panel-title">
+                <div class="side-panel__header">
+                    <div class="side-panel__title-wrap">
+                        <h2 id="workflow-panel-title" data-i18n="wf.panel.title">Service Request</h2>
+                        <span id="wf-header-sr-num" class="side-panel__badge"></span>
+                    </div>
+                    <button type="button" id="workflow-close" class="side-panel__close" data-i18n-aria="tree.panel.close" aria-label="Close">×</button>
+                </div>
+
+                <nav class="wf-tabs" role="tablist" aria-label="SR workflow sections">
+                    <button type="button" class="wf-tab wf-tab--active" data-tab="sr" role="tab" aria-selected="true" data-i18n="wf.tab.sr">SR details</button>
+                    <button type="button" class="wf-tab" data-tab="inspection" role="tab" aria-selected="false" data-i18n="wf.tab.inspection">SR inspection</button>
+                    <button type="button" class="wf-tab" data-tab="workorder" id="wf-tab-workorder" role="tab" aria-selected="false" data-i18n="wf.tab.workorder">SR work order</button>
+                </nav>
+
+                <div class="side-panel__body workflow-panel__body">
+                    <p id="workflow-message" class="side-panel__message" role="status" aria-live="polite"></p>
+
+                    <div id="workflow-view-sr" class="wf-view" role="tabpanel">
+                        <section class="wf-card">
+                            <h3 class="wf-card__title" data-i18n="wf.card.sr">Service request</h3>
+                            <div class="wf-grid">
+                                <label class="wf-field"><span data-i18n="field.srNumber">SR number</span><input type="text" id="wf-sr-number" readonly /></label>
+                                <label class="wf-field"><span data-i18n="field.status">Status</span><input type="text" id="wf-sr-status" readonly /></label>
+                                <label class="wf-field"><span data-i18n="field.subStatus">Sub-status</span><input type="text" id="wf-sr-substatus" readonly /></label>
+                                <label class="wf-field"><span data-i18n="field.priority">Priority</span><input type="text" id="wf-sr-priority" readonly /></label>
+                                <label class="wf-field"><span data-i18n="field.subArea">Sub-area</span><input type="text" id="wf-sr-subarea" readonly /></label>
+                                <label class="wf-field wf-field--wide"><span data-i18n="field.requestTypePlain">Request type</span><input type="text" id="wf-sr-request-type" readonly /></label>
+                                <label class="wf-field"><span data-i18n="field.linkedTree">Linked tree</span><input type="text" id="wf-sr-tree" readonly /></label>
+                                <label class="wf-field"><span data-i18n="field.species">Species</span><input type="text" id="wf-sr-species" readonly /></label>
+                                <label class="wf-field"><span data-i18n="field.quarter">Quarter</span><input type="text" id="wf-sr-quarter" readonly /></label>
+                                <label class="wf-field wf-field--wide"><span data-i18n="field.street">Street</span><input type="text" id="wf-sr-street" readonly /></label>
+                                <label class="wf-field"><span data-i18n="field.contact">Contact</span><input type="text" id="wf-sr-contact" readonly /></label>
+                                <label class="wf-field"><span data-i18n="field.email">Email</span><input type="text" id="wf-sr-email" readonly /></label>
+                                <label class="wf-field wf-field--wide"><span data-i18n="field.location">Location</span><input type="text" id="wf-sr-address" readonly /></label>
+                                <label class="wf-field"><span data-i18n="field.opened">Opened</span><input type="text" id="wf-sr-opened" readonly /></label>
+                                <label class="wf-field"><span data-i18n="field.closed">Closed</span><input type="text" id="wf-sr-closed" readonly /></label>
+                                <label class="wf-field wf-field--wide"><span data-i18n="field.description">Description</span><textarea id="wf-sr-description" rows="3" readonly></textarea></label>
+                            </div>
+                        </section>
+                        <section class="wf-card wf-card--activities" id="wf-activities-card">
+                            <h3 class="wf-card__title" data-i18n="desk.section.activities">Activities</h3>
+                            <p id="wf-plan-current" class="wf-plan-current" hidden></p>
+                            <ul id="wf-activities-open" class="wf-activities-compact" role="list"></ul>
+                            <p id="wf-activities-empty" class="wf-activities-empty" hidden data-i18n="desk.noOpenActivities">No open activities.</p>
+                            <a id="wf-desk-link" class="wf-desk-link" href="/ServiceRequests" data-i18n="wf.openDesk">Open full desk</a>
+                        </section>
+                    </div>
+
+                    <div id="workflow-view-inspection" class="wf-view" role="tabpanel" hidden>
+                        <div id="wf-inspection-empty" class="wf-empty" hidden>
+                            <p data-i18n="wf.inspection.empty">No inspection exists for this service request yet.</p>
+                            <button type="button" id="wf-create-inspection" class="wf-btn wf-btn--primary" data-i18n="wf.btn.createInspection">Create inspection</button>
+                        </div>
+                        <form id="wf-inspection-form" class="wf-form" novalidate hidden>
+                            <section class="wf-card">
+                                <h3 class="wf-card__title" data-i18n="wf.card.inspection">Inspection</h3>
+                                <div class="wf-grid">
+                                    <label class="wf-field"><span data-i18n="field.inspectionId">Inspection ID</span><input type="text" id="wf-inspection-id" readonly /></label>
+                                    <label class="wf-field"><span data-i18n="field.srNumber">SR number</span><input type="text" id="wf-inspection-sr" readonly /></label>
+                                    <label class="wf-field"><span data-i18n="field.linkedTree">Linked tree</span><input type="text" id="wf-inspection-tree" readonly /></label>
+                                    <label class="wf-field"><span data-i18n="field.subArea">Sub-area</span><output id="wf-inspection-subarea" class="wf-readout"></output></label>
+                                    <label class="wf-field wf-field--wide"><span data-i18n="field.status">Status *</span><select id="wf-inspection-status" required><option value="Created">Created</option></select></label>
+                                    <label class="wf-field"><span data-i18n="field.inspector">Inspector</span><input type="text" id="wf-inspection-inspector" list="assignee-list" maxlength="128" /></label>
+                                    <label class="wf-field"><span data-i18n="field.inspectDate">Inspect date</span><input type="date" id="wf-inspection-date" /></label>
+                                    <label class="wf-field"><span data-i18n="field.findings">Findings</span><select id="wf-inspection-findings"><option value="">—</option><option value="Healthy" data-i18n="enum.finding.healthy">Healthy</option><option value="Defect" data-i18n="enum.finding.defect">Defect</option><option value="Hazard" data-i18n="enum.finding.hazard">Hazard</option><option value="Wrong tree" data-i18n="enum.finding.wrongTree">Wrong tree</option></select></label>
+                                    <label class="wf-field"><span data-i18n="field.priority">Priority</span><select id="wf-inspection-priority"><option value="Normal" data-i18n="enum.priority.normal">Normal</option><option value="Urgent" data-i18n="enum.priority.urgent">Urgent</option></select></label>
+                                    <label class="wf-field wf-field--inline"><span data-i18n="field.ehap">EHAP</span><input type="checkbox" id="wf-inspection-ehap" /></label>
+                                    <label class="wf-field wf-field--wide wf-field--resolution-only" id="wf-workorder-type-row" hidden><span data-i18n="field.workOrderTypeRes">Work order type (Resolution) *</span><select id="wf-workorder-type"><option value="Unassigned">Unassigned</option></select></label>
+                                    <label class="wf-field wf-field--wide"><span data-i18n="field.comment">Comment</span><textarea id="wf-inspection-comment" rows="3" data-i18n-placeholder="wf.inspCommentPlaceholder" placeholder="Required when closing (No Work or Resolution)"></textarea></label>
+                                    <label class="wf-field wf-field--wide"><span data-i18n="field.internalComment">Internal comment</span><textarea id="wf-inspection-internal" rows="2"></textarea></label>
+                                </div>
+                            </section>
+                            <div class="wf-actions">
+                                <button type="submit" id="wf-inspection-save" class="wf-btn wf-btn--primary" data-i18n="wf.btn.saveInspection">Save inspection</button>
+                            </div>
+                        </form>
+                    </div>
+
+                    <div id="workflow-view-workorder" class="wf-view" role="tabpanel" hidden>
+                        <div id="wf-workorder-empty" class="wf-empty" hidden>
+                            <p data-i18n="wf.workorder.empty">No work order exists for this service request yet.</p>
+                        </div>
+                        <form id="wf-workorder-form" class="wf-form" novalidate hidden>
+                            <section class="wf-card">
+                                <h3 class="wf-card__title" data-i18n="wf.card.workorder">Work order</h3>
+                                <div class="wf-grid">
+                                    <label class="wf-field"><span data-i18n="field.workOrderId">Work order ID</span><input type="text" id="wf-workorder-id" readonly /></label>
+                                    <label class="wf-field"><span data-i18n="field.srNumber">SR number</span><input type="text" id="wf-workorder-sr" readonly /></label>
+                                    <label class="wf-field"><span data-i18n="field.linkedTree">Linked tree</span><input type="text" id="wf-workorder-tree" readonly /></label>
+                                    <label class="wf-field wf-field--wide"><span data-i18n="field.status">Status *</span><select id="wf-workorder-status" required><option value="Created">Created</option></select></label>
+                                    <label class="wf-field"><span data-i18n="field.workOrderType">Work order type</span><input type="text" id="wf-workorder-type-wo" readonly /></label>
+                                    <label class="wf-field"><span data-i18n="field.priority">Priority</span><input type="text" id="wf-workorder-priority" readonly /></label>
+                                    <label class="wf-field"><span data-i18n="field.inspector">Inspector</span><input type="text" id="wf-workorder-inspby" readonly /></label>
+                                    <label class="wf-field"><span data-i18n="field.startDate">Start date</span><input type="text" id="wf-workorder-start" readonly /></label>
+                                    <label class="wf-field"><span data-i18n="field.workDate">Work date *</span><input type="date" id="wf-workorder-date" required /></label>
+                                    <label class="wf-field wf-field--wide"><span data-i18n="field.contractor">Contractor</span><input type="text" id="wf-workorder-contractor" list="assignee-list" /></label>
+                                    <label class="wf-field"><span data-i18n="field.assignedTo">Assigned to</span><input type="text" id="wf-workorder-assigned" list="assignee-list" maxlength="128" /></label>
+                                    <label class="wf-field"><span data-i18n="field.projectCode">Project code</span><input type="text" id="wf-workorder-project" maxlength="64" /></label>
+                                    <label class="wf-field wf-field--wide"><span data-i18n="field.fieldComments">Field comments</span><textarea id="wf-workorder-field" rows="3" data-i18n-placeholder="wf.woFieldPlaceholder" placeholder="Required when resolving (or use internal comment)"></textarea></label>
+                                    <label class="wf-field wf-field--wide"><span data-i18n="field.internalComment">Internal comment</span><textarea id="wf-workorder-internal" rows="2"></textarea></label>
+                                </div>
+                            </section>
+                            <div class="wf-actions">
+                                <button type="submit" id="wf-workorder-save" class="wf-btn wf-btn--primary" data-i18n="wf.btn.saveWorkorder">Save work order</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </aside>
+            <script>
+                window.ZURICH_MAP = {
+                    centerLat: @Model.CenterLat.ToString(System.Globalization.CultureInfo.InvariantCulture),
+                    centerLng: @Model.CenterLng.ToString(System.Globalization.CultureInfo.InvariantCulture),
+                    initialZoom: @Model.InitialZoom,
+                    minTreeLayerZoom: @Model.MinTreeLayerZoom,
+                    minTreeClickZoom: @Model.MinTreeClickZoom,
+                    minSrZoom: @Model.MinSrZoom,
+                    wmsTileUrl: '@Model.WmsTilePath',
+                    wmsFeatureInfoUrl: '@Model.WmsFeatureInfoPath',
+                    treeSearchUrl: '@Model.TreeSearchPath',
+                    treesNearUrl: '@Model.TreesNearPath',
+                    mapPickRadiusM: @Model.MapPickRadiusM,
+                    cityBoundaryUrl: '@Model.CityBoundaryPath',
+                    maskBufferFeet: @Model.MaskBufferFeet,
+                    srCreateUrl: '@Model.SrCreatePath',
+                    srGetUrl: '@Model.SrGetPath',
+                    inspectionCreateUrl: '@Model.InspectionCreatePath',
+                    inspectionUpdateUrl: '@Model.InspectionUpdatePath',
+                    workOrderUpdateUrl: '@Model.WorkOrderUpdatePath',
+                    mapMarkersUrl: '@Model.MapMarkersPath',
+                    activitiesUrl: '/api/activities/sr/{srNumber}',
+                    activityUpdateUrl: '/api/activities/{activityId}',
+                    assigneesUrl: '/api/users/assignees',
+                    serviceDeskPath: '/ServiceRequests',
+                    loginPath: '@Model.LoginPath',
+                    logoutPath: '@Model.LogoutPath',
+                    isAuthenticated: @(Model.IsAuthenticated ? "true" : "false")
+                };
+            </script>
+            <script src="~/lib/turf/turf.min.js" asp-append-version="true"></script>
+            <script src="~/js/i18n.js" asp-append-version="true"></script>
+            <script src="~/js/header-controls.js" asp-append-version="true"></script>
+            <script src="~/js/app-shell.js" asp-append-version="true"></script>
+            <script src="~/js/filter-panel.js" asp-append-version="true"></script>
+            <script src="~/js/tree-panel.js" asp-append-version="true"></script>
+            <script src="~/js/city-boundary.js" asp-append-version="true"></script>
+            <script src="~/js/assignees.js" asp-append-version="true"></script>
+            <script src="~/js/workflow-panel.js" asp-append-version="true"></script>
+            <script src="~/js/map-markers.js" asp-append-version="true"></script>
+            <script src="~/js/map-legend.js" asp-append-version="true"></script>
+            <script src="~/js/map-click-pick.js" asp-append-version="true"></script>
+            <script src="~/js/sr-form.js" asp-append-version="true"></script>
+            <script src="~/js/map.js" asp-append-version="true"></script>
+            <script async defer src="@Model.GoogleMapsScriptUrl"></script>
+        }
+        else
+        {
+            <div class="map-missing-key">
+                <p>Set <code>GoogleMaps:ApiKey</code> in <code>appsettings.Development.local.json</code> to load the map.</p>
+            </div>
+        }
+            </div>
+        </div>
+    </div>
+</body>
+</html>

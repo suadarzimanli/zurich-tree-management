@@ -1,0 +1,640 @@
+% DC Water Leak Monitoring Dashboard — Research paper
+% LaTeX version (converted from THESIS.md)
+
+\documentclass[12pt,a4paper]{article}
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{lmodern}
+\usepackage{geometry}
+\usepackage{hyperref}
+\usepackage{url}
+\usepackage{listings}
+\usepackage{booktabs}
+\usepackage{parskip}
+\usepackage{enumitem}
+\usepackage{graphicx}
+\usepackage{amsmath}
+\usepackage{longtable}
+\usepackage{array}
+
+\geometry{margin=2.5cm}
+\linespread{1.08}
+\hypersetup{colorlinks=true,urlcolor=blue,citecolor=blue}
+\graphicspath{{figures/}}
+
+\title{Application of Machine Learning and Operational Workflow Design to Synthetic Water Distribution Network Monitoring}
+\author{Suad Arzimanli \\ \texttt{suad.arzimanli@gmail.com}}
+\date{}
+
+\begin{document}
+\maketitle
+
+\begin{abstract}
+Water distribution utilities face persistent losses from network leaks, aging infrastructure, and the difficulty of interpreting high-volume supervisory control and data acquisition (SCADA) signals in real time. Artificial intelligence and machine learning offer methods to detect anomalous flow and pressure patterns, prioritize field response, and support operator decision-making---provided that data quality, operational context, and human workflow are treated as integral parts of the system rather than afterthoughts.
+
+This thesis documents the design, implementation, and educational rationale of an \textbf{interactive web-based leak monitoring dashboard} developed as a teaching and demonstration platform. The system simulates eight pressure zones in the Washington, DC area, generates fourteen days of hourly synthetic SCADA readings (flow and pressure), trains a \textbf{logistic regression classifier entirely in the browser}, and presents results on a geospatial map with separated operational metrics, contextual review panels, and a stepwise operator workflow (acknowledge, work order, dispatch, confirm leak or false alarm).
+
+The contribution of this work is not a production-ready utility product but a \textbf{coherent end-to-end narrative} that connects data engineering, model training and inference, explainable alerting, map-based situational awareness, and responsible use disclaimers. The dashboard deliberately teaches that \textbf{map-visible risk} and \textbf{open operator incidents} can diverge when readings normalize before a case is closed---mirroring real control-room practice. Limitations---including simulator-defined labels, class imbalance, lack of spatial hydraulic modeling, and absence of real customer data---are analyzed explicitly. Future work may incorporate public leak-benchmark datasets, improved validation methodology, and integration with utility asset management systems under appropriate governance.
+
+\medskip
+\noindent\textbf{Disclaimer:} All telemetry is \textbf{synthetic}. This project is \textbf{not} affiliated with, endorsed by, or connected to DC Water or any operational utility.
+\end{abstract}
+
+\noindent\textbf{Keywords:} water distribution, leak detection, SCADA, synthetic data, logistic regression, operator workflow, geospatial dashboard, responsible AI, educational technology.
+
+\tableofcontents
+\listoffigures
+\newpage
+
+%----------------------------------------------------------------------
+\section{Introduction}
+\label{sec:intro}
+
+\subsection{Motivation}
+
+Non-revenue water loss from distribution leaks remains a significant economic and environmental concern for municipal water providers. Modern monitoring relies on a combination of district metering areas (DMAs), pressure sensors, flow meters, and increasingly on analytics layers that flag deviations from expected hydraulic behavior. Introductory courses on artificial intelligence often treat leak detection as an abstract classification problem; in practice, utility staff must reconcile \textbf{noisy telemetry}, \textbf{planned maintenance}, \textbf{weather effects}, and \textbf{false positives} before committing repair crews.
+
+There is a pedagogical gap between lecture-style descriptions of AI in water utilities and hands-on systems that show how labels, features, alerts, and human procedures fit together. This project was undertaken to \textbf{close that gap} through runnable software that is honest about its synthetic nature while still reflecting credible operational structure.
+
+\subsection{Scope of the documented work}
+
+The primary artifact described in this thesis is the \textbf{DC Water Leak Monitoring Dashboard}: a static web application requiring only a local HTTP server (or static hosting such as GitHub Pages). Public repository:
+\url{https://github.com/suadarzimanli/dc-water-leak-monitoring-dashboard}.
+Live demonstration:
+\url{https://suadarzimanli.github.io/dc-water-leak-monitoring-dashboard/}.
+
+Supporting materials include user documentation (\texttt{README.md}) for installation and learning paths. Course materials on general artificial intelligence (definitions, risks, data annotation, utility relevance of leak detection) inform the \textbf{conceptual framing} but are not themselves software deliverables.
+
+\subsection{Thesis objectives}
+
+The work pursues the following objectives:
+\begin{enumerate}[label=\textbf{O\arabic*:}]
+    \item \textbf{Simulation:} Build a reproducible synthetic SCADA generator with multiple scenario types (leak, hydrant test, valve work, sensor drift, heavy rain, normal operations).
+    \item \textbf{Detection:} Implement and compare \textbf{rule-based} and \textbf{machine-learning} leak scoring on the same feature space.
+    \item \textbf{Operations:} Model operator workflow as an ordered state machine separate from raw sensor classification.
+    \item \textbf{Communication:} Visualize risk on a public map, split metrics (map vs.\ incidents vs.\ close-out), and explain why zones were flagged.
+    \item \textbf{Education:} Provide a ten-step interactive user guide and documentation suitable for self-directed learning and thesis examination.
+    \item \textbf{Responsibility:} State limitations, disclaimers, and non-affiliation with real utilities throughout the system and text.
+\end{enumerate}
+
+\subsection{Structure of this document}
+
+Section~\ref{sec:background} reviews background concepts. Section~\ref{sec:problem} states the problem and requirements. Section~\ref{sec:methodology} describes methodology. Section~\ref{sec:implementation} presents system architecture and implementation. Section~\ref{sec:results} discusses outcomes and interpretation. Section~\ref{sec:ethics} addresses ethics, risks, and limitations. Section~\ref{sec:conclusion} concludes and outlines future work. References and appendices follow.
+
+%----------------------------------------------------------------------
+\section{Background and related concepts}
+\label{sec:background}
+
+\subsection{Leak detection in water distribution systems}
+
+Leak detection in piped networks traditionally combines acoustic surveys, pressure transient analysis, balance methods across DMAs, and analysis of minimum night flow. SCADA systems aggregate remote measurements at intervals ranging from minutes to hours. Anomalies---sustained high flow with depressed pressure, unusual diurnal shapes, or step changes after main breaks---trigger investigation.
+
+Industry and research literature increasingly explore \textbf{machine learning} to learn normal baselines and flag deviations. Models may use time-series features, spatial correlations between adjacent zones, weather covariates, and historical work orders. Performance depends critically on \textbf{label quality} (confirmed leaks vs.\ unverified alarms) and on \textbf{context} that explains non-leak events such as hydrant testing or valve operations.
+
+\subsection{Artificial intelligence in utility operations}
+
+As summarized in introductory utility-AI teaching materials, algorithms applied to smart meter and sensor data can:
+\begin{itemize}
+    \item monitor flow and pressure continuously;
+    \item detect patterns suggestive of leaks;
+    \item support prioritization using severity, history, and resource constraints.
+\end{itemize}
+
+These capabilities align with broader AI benefits---automation, faster analysis, improved decisions---while inheriting familiar risks: biased training data, false alarms, over-reliance on opaque scores, and privacy concerns when real customer or operational data are used without governance.
+
+\subsection{Machine learning pipeline concepts}
+
+The project illustrates a minimal supervised pipeline (Table~\ref{tab:ml-pipeline}).
+
+\begin{table}[htbp]
+\centering
+\caption{Machine learning pipeline stages in this project.}
+\label{tab:ml-pipeline}
+\begin{tabular}{@{}ll@{}}
+\toprule
+\textbf{Stage} & \textbf{Role in this project} \\
+\midrule
+Data acquisition & Synthetic generator (\texttt{data.js}, \texttt{context.js}) \\
+Labeling & \texttt{isLeak} from simulator (1 only for \texttt{LEAK} scenario) \\
+Feature engineering & Normalized flow/pressure deltas, interaction, hour-of-day \\
+Training & Logistic regression, 250 epochs, browser-based \\
+Validation & Random 75/25 hold-out; accuracy displayed in UI \\
+Inference & Per-zone scoring on latest reading \\
+Deployment & Immediate use in same session; no model registry \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+The dashboard runs the full pipeline in the browser, which is suitable for seminar sessions emphasizing \textbf{training vs.\ inference} without a separate analytics server.
+
+\subsection{Human--machine teaming and workflow}
+
+Automated detection does not replace operators. Utilities require \textbf{acknowledgment}, \textbf{work orders}, \textbf{dispatch}, and \textbf{closure} with documented outcomes (confirmed leak vs.\ false alarm). False positives from hydrant tests or maintenance impose real costs if crews are sent unnecessarily.
+
+This thesis treats \textbf{workflow as first-class software}, not as a comment in a user manual: only one primary action is enabled at each workflow state, and incident lists distinguish \textbf{active map risk} from \textbf{awaiting operator close-out} when telemetry has returned to normal.
+
+\subsection{Related demonstration systems}
+
+Public datasets and benchmarks (e.g., leak simulation studies on Mendeley, Water Benchmark Hub LeakDB documentation) enable rigorous comparison on controlled hydraulic scenarios. This project \textbf{does not} integrate those datasets in its current form; they are cited as extensions for future empirical chapters.
+
+%----------------------------------------------------------------------
+\section{Problem statement and requirements}
+\label{sec:problem}
+
+\subsection{Problem statement}
+
+\textbf{How can an educational software system demonstrate end-to-end leak monitoring---synthetic data generation, ML and rule-based detection, geospatial visualization, contextual review, and operator workflow---without using confidential utility data, while still teaching distinctions that matter in real control rooms?}
+
+\subsection{Functional requirements}
+
+\begin{table}[htbp]
+\centering
+\caption{Functional requirements.}
+\label{tab:fr}
+\begin{tabular}{@{}cl@{}}
+\toprule
+\textbf{ID} & \textbf{Requirement} \\
+\midrule
+FR-1 & Generate multi-zone, multi-day hourly flow and pressure time series \\
+FR-2 & Train a leak classifier and report hold-out accuracy \\
+FR-3 & Support live streaming of new readings at configurable intervals \\
+FR-4 & Display zones on a real map with risk-colored markers \\
+FR-5 & Separate metrics for map risk, pending incidents, and close-out queue \\
+FR-6 & Provide zone charts, context cards, and ``why flagged'' explanations \\
+FR-7 & Enforce ordered operator workflow with work order identifiers \\
+FR-8 & Offer rules-only detection mode for comparison \\
+FR-9 & Include scripted scenarios (leak, hydrant test, valve work) \\
+FR-10 & Provide a guided ten-step tutorial for novice users \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{Non-functional requirements}
+
+\begin{table}[htbp]
+\centering
+\caption{Non-functional requirements.}
+\label{tab:nfr}
+\begin{tabular}{@{}cl@{}}
+\toprule
+\textbf{ID} & \textbf{Requirement} \\
+\midrule
+NFR-1 & Run locally without backend installation (static HTML/JS + HTTP server) \\
+NFR-2 & No API keys required for map tiles (OpenStreetMap) \\
+NFR-3 & Clear disclaimer: synthetic data, unofficial project \\
+NFR-4 & Maintainable modular JavaScript (ES modules) \\
+NFR-5 & Accessible learning path under fifteen minutes with user guide \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{Out of scope}
+
+\begin{itemize}
+    \item Real DC Water SCADA integration;
+    \item hydraulic simulation (EPANET, etc.);
+    \item mobile field crew apps;
+    \item enterprise authentication, role-based access control;
+    \item regulatory reporting or legal defensibility of detections.
+\end{itemize}
+
+%----------------------------------------------------------------------
+\section{Methodology}
+\label{sec:methodology}
+
+\subsection{Research approach}
+
+The work follows \textbf{design science} and \textbf{engineering education} practice: construct an artifact, expose design decisions, and evaluate against objectives O1--O6 through structured demonstration rather than a randomized field trial on a live network.
+
+Evaluation criteria:
+\begin{itemize}
+    \item \textbf{Completeness:} Can a user execute generate $\rightarrow$ train $\rightarrow$ simulate $\rightarrow$ investigate $\rightarrow$ close incidents without external instructions?
+    \item \textbf{Conceptual fidelity:} Does the UI teach map/incident split and false-positive context?
+    \item \textbf{Transparency:} Are labels, features, and model family inspectable in source code?
+    \item \textbf{Reproducibility:} Does a fixed random seed (42) yield stable initial datasets for classroom use?
+\end{itemize}
+
+\subsection{Synthetic data methodology}
+
+\subsubsection{Zone model}
+
+Eight notional pressure zones are defined with names (e.g., Downtown, Georgetown), WGS-84 coordinates, baseline flow (L/s) and pressure (psi), DMA labels, and priority flags (\texttt{high} vs.\ \texttt{standard}). These are \textbf{pedagogical placeholders}, not GIS exports from a utility asset database.
+
+\subsubsection{Reading generation}
+
+For each zone and each hour over fourteen days:
+\begin{enumerate}
+    \item A seeded pseudo-random generator (\texttt{mulberry32}) ensures repeatability.
+    \item With probability \texttt{leakRate} (default 4\%), the scenario type is \texttt{LEAK}; otherwise \texttt{NORMAL} for bulk history.
+    \item \texttt{applyScenarioToReading} computes flow and pressure from a diurnal sine on baseline flow, pressure coupling, and scenario-specific offsets.
+    \item Only the \texttt{LEAK} scenario sets training label \texttt{isLeak} $= 1$.
+\end{enumerate}
+
+Live simulation uses \texttt{pickLiveScenario}, which also yields hydrant tests, valve work, sensor drift, and heavy rain at low probabilities, and biases scenarios when maintenance is scheduled on a zone.
+
+\subsubsection{Operational context}
+
+Static maintenance events (e.g., valve work in Zone-04, hydrant test in Zone-07) are created at data-load time. Weather is chosen once per session from a small catalog (clear, rain, heat, cold). Time-of-day context is derived from the reading hour for display, not for training labels.
+
+\subsection{Machine learning methodology}
+
+\subsubsection{Model choice}
+
+\textbf{Logistic regression} was selected deliberately:
+\begin{itemize}
+    \item interpretable linear decision boundary in feature space;
+    \item trains quickly in JavaScript without ML frameworks;
+    \item sufficient for demonstrating training vs.\ inference in the browser.
+\end{itemize}
+
+\subsubsection{Features}
+
+For each reading, five inputs are constructed:
+\begin{enumerate}
+    \item bias term (1);
+    \item $z$-score of flow relative to zone mean and standard deviation;
+    \item $z$-score of pressure decrease (mean pressure minus current, normalized);
+    \item product of flow and pressure $z$-scores (interaction);
+    \item sine of hour angle for diurnal structure.
+\end{enumerate}
+
+Zone statistics are computed on the full generated dataset before splitting.
+
+\subsubsection{Training procedure}
+
+\begin{itemize}
+    \item 75\% / 25\% random train--test split (shuffled rows);
+    \item gradient descent for 250 epochs, learning rate 0.08;
+    \item binary cross-entropy via per-row weight updates;
+    \item test accuracy: fraction of test rows where predicted class (probability $\geq 0.5$) equals \texttt{isLeak}.
+\end{itemize}
+
+\subsubsection{Risk mapping}
+
+\begin{table}[htbp]
+\centering
+\caption{Mapping predicted probability to map/UI risk.}
+\label{tab:risk}
+\begin{tabular}{@{}ll@{}}
+\toprule
+\textbf{Probability} & \textbf{Map / UI risk} \\
+\midrule
+$< 0.45$ & Normal (green) \\
+$0.45$--$0.69$ & Warning (orange) \\
+$\geq 0.70$ & Critical / likely leak (red) \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsubsection{Rule-based baseline}
+
+A parallel \textbf{rules-only} mode uses heuristic scoring from $z$-scores without learned weights. A separate \textbf{rule hit} flag marks simultaneous high flow ($\geq 1.15 \times$ mean) and low pressure ($\leq 0.92 \times$ mean) for explanation text. Students can compare ML and rules on identical live streams.
+
+\subsection{Workflow methodology}
+
+Incidents follow workflow states:
+\[
+\texttt{open} \rightarrow \texttt{acknowledged} \rightarrow \texttt{ticket\_created} \rightarrow \texttt{dispatched} \rightarrow \texttt{closed\_leak},
+\]
+or terminal \texttt{closed\_false\_alarm} from several states.
+
+Work orders receive sequential identifiers (e.g., \texttt{WO-1041}). The system \textbf{does not} auto-close incidents when readings normalize; they move to an \textbf{awaiting close-out} list, teaching that human closure decouples from transient telemetry. Figure~\ref{fig:workflow} illustrates the operator \textbf{Action} tab during an open incident.
+
+\begin{figure}[htbp]
+  \centering
+  \includegraphics[width=\linewidth]{fig-workflow.png}
+  \caption{Operator workflow on the \textbf{Action} tab (acknowledge, work order, dispatch, and closure steps).}
+  \label{fig:workflow}
+\end{figure}
+
+\subsection{User study methodology (informal)}
+
+The interactive user guide acts as a \textbf{structured walkthrough} with completion checks (data loaded, model trained, simulation started, context viewed, workflows closed). This is formative evaluation for learning, not a formal usability study with participant $N$ and statistical tests. Future work could add pre/post questionnaires.
+
+%----------------------------------------------------------------------
+\section{System design and implementation}
+\label{sec:implementation}
+
+\subsection{Architecture overview}
+
+The web dashboard is a \textbf{single-page application} orchestrated by \texttt{app.js}:
+\begin{itemize}
+    \item \textbf{Domain modules} (\texttt{data.js}, \texttt{context.js}, \texttt{ml.js}, \texttt{workflow.js}, \texttt{zones.js}) avoid DOM access;
+    \item \textbf{Presentation helpers} (\texttt{map.js}, \texttt{charts.js}, \texttt{theme.js}) encapsulate Leaflet and Chart.js;
+    \item \textbf{User guide} (\texttt{user-guide.js}) receives dependencies from \texttt{app.js}.
+\end{itemize}
+
+External dependencies: Leaflet 1.9.4, Chart.js 4.4.1, OpenStreetMap tiles. No build step; ES modules load over HTTP.
+
+Figure~\ref{fig:overview} shows the main interface after synthetic data generation and model training: pipeline controls, separated metrics, geospatial map, zone inspector, and incident panels.
+
+\begin{figure}[htbp]
+  \centering
+  \includegraphics[width=\linewidth]{fig-overview.png}
+  \caption{Dashboard overview after \textbf{Generate Data} and \textbf{Train Model} (synthetic SCADA loaded, hold-out accuracy shown).}
+  \label{fig:overview}
+\end{figure}
+
+\subsection{Application state and phases}
+
+Central state includes: readings array, \texttt{latestByZone} map, \texttt{modelBundle}, alerts/incidents, maintenance, weather, detection mode, simulation timer, and guide flags. Application phases (\texttt{idle}, \texttt{data\_ready}, \texttt{model\_ready}, \texttt{live}) gate toolbar buttons.
+
+Every mutation path tends toward \texttt{renderAll()}, which refreshes metrics, incident lists, zone inspector, workflow panel, and guide UI.
+
+\subsection{Key subsystems}
+
+\subsubsection{Data and simulation}
+
+\texttt{generateScadaDataset} produces bulk history; \texttt{simulateLiveTick} adds one random zone per interval; \texttt{createScriptedReading} supports toolbar injections (leak, hydrant test, valve work).
+
+\subsubsection{Detection}
+
+\texttt{buildModelBundle}, \texttt{evaluateReading}, and \texttt{buildWhyFlagged} implement training, inference, and explanatory text.
+
+\subsubsection{Incidents}
+
+\texttt{upsertIncident} when risk $\neq$ normal; \texttt{classifyOpenIncidents} splits active-on-map vs.\ awaiting close-out; \texttt{reconcileIncidents} refreshes open case messages.
+
+\subsubsection{Map and visualization}
+
+Leaflet markers use CSS risk classes, maintenance badges, selection ring, and pan-on-click. Chart.js renders a dual-axis line chart of the last 48 points for the selected zone.
+
+\subsubsection{User guide}
+
+Ten steps from clean reset through false-alarm and leak workflows; \texttt{guide-mode-active} CSS dims the toolbar during guided mode.
+
+\subsection{User interface design decisions}
+
+\begin{table}[htbp]
+\centering
+\caption{Selected UI design decisions.}
+\label{tab:ui}
+\begin{tabular}{@{}p{0.35\linewidth}p{0.55\linewidth}@{}}
+\toprule
+\textbf{Decision} & \textbf{Rationale} \\
+\midrule
+Top pipeline buttons (1--2--3) & Clear temporal order for novices \\
+Metric strip & At-a-glance operations picture \\
+Side tabs: Zone / Context / Action & Separates telemetry, reasoning, and acts \\
+Dual incident lists & Teaches map vs.\ case management \\
+Light/dark theme & Accessibility and presentation flexibility \\
+Help modal + user guide & Supports autodidactic and classroom use \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{Implementation statistics}
+
+\begin{table}[htbp]
+\centering
+\caption{Approximate implementation scale.}
+\label{tab:stats}
+\begin{tabular}{@{}lr@{}}
+\toprule
+\textbf{Quantity} & \textbf{Value} \\
+\midrule
+Pressure zones & 8 \\
+Historical rows per full generate & 2{,}688 ($8 \times 14 \times 24$) \\
+ML features & 5 \\
+User guide steps & 10 \\
+JavaScript modules (application source) & 11 \\
+Scenario types & 6 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+%----------------------------------------------------------------------
+\section{Results and discussion}
+\label{sec:results}
+
+\subsection{Demonstration outcomes}
+
+When executed as intended, the system exhibits the following observable behaviors:
+\begin{enumerate}
+    \item \textbf{After generate:} Map markers appear; maintenance list populates; zone inspector shows fourteen-day history.
+    \item \textbf{After train:} Model accuracy displays as a percentage; detection mode defaults to ML.
+    \item \textbf{During simulation:} Marker colors and metrics update periodically; incidents open on flagged zones (Figure~\ref{fig:live-risk}).
+    \item \textbf{On context review:} Hydrant and valve scenarios surface false-positive hints.
+    \item \textbf{On workflow completion:} Work order ID visible; incident leaves pending lists; activity log records actions.
+    \item \textbf{On reading normalization before close:} Zone may return green while incident remains in \textbf{Awaiting close-out}---the intended lesson (Figure~\ref{fig:closeout}).
+\end{enumerate}
+
+\begin{figure}[htbp]
+  \centering
+  \includegraphics[width=\linewidth]{fig-live-risk.png}
+  \caption{Live simulation with elevated map risk (warning or critical markers) and open incidents.}
+  \label{fig:live-risk}
+\end{figure}
+
+\begin{figure}[htbp]
+  \centering
+  \includegraphics[width=\linewidth]{fig-closeout.png}
+  \caption{Split between map risk and case management: zone readings normalized (green marker) while the incident remains under \textbf{Awaiting operator close-out}.}
+  \label{fig:closeout}
+\end{figure}
+
+\subsection{Interpretation of model accuracy}
+
+Reported accuracy is \textbf{hold-out performance on simulator-labeled data} with random row splits. It measures how well the model recovers the generator's definition of leak, not field-verified main breaks. High accuracy can coexist with poor generalization to real networks. The UI does not claim regulatory certification.
+
+Class imbalance ($\sim$4\% positive) can inflate accuracy if the model predicts ``no leak'' often. Instructors should discuss \textbf{precision, recall, and false alarm costs} alongside the demo.
+
+\subsection{Comparison: ML vs.\ rules}
+
+Qualitatively, ML mode uses learned weights on interaction features; rules mode uses fixed heuristics. Hydrant tests may trigger warnings under both; the context panel and \texttt{isFalsePositive} metadata steer operators toward dismissal (Figure~\ref{fig:context}). Side-by-side mode switching on a live stream is an effective classroom exercise.
+
+\begin{figure}[htbp]
+  \centering
+  \includegraphics[width=0.92\linewidth]{fig-context.png}
+  \caption{\textbf{Context} tab during a non-leak scenario (e.g., hydrant test), surfacing operational explanation and false-alarm guidance.}
+  \label{fig:context}
+\end{figure}
+
+\subsection{Educational results (expected)}
+
+Against objectives O1--O6, the artifact satisfies simulation, detection, operations, communication, education, and responsibility criteria through its scenarios, workflow, map UI, ten-step guide, README, and in-app disclaimers. Formal learning gains would require assessment instruments not deployed in this software thesis.
+
+\subsection{Relation to real utilities}
+
+A production utility platform would add GIS asset IDs, SCADA historians, ticket system integration (CMMS), crew mobile apps, hydraulic models, regulatory reporting, and MLOps (model versioning, drift monitoring, audit trails). This project \textbf{anticipates} those layers through structure (zones, DMA labels, workflow) without implementing integrations.
+
+The \textbf{explicit non-affiliation} with DC Water avoids implying operational endorsement while still using public geography for map literacy.
+
+%----------------------------------------------------------------------
+\section{Ethical considerations, risks, and limitations}
+\label{sec:ethics}
+
+\subsection{Data ethics}
+
+No real customer usage data, no personally identifiable information, and no confidential utility telemetry are processed. Synthetic generation eliminates privacy risk but also eliminates external validity.
+
+\subsection{Algorithmic risks}
+
+\begin{table}[htbp]
+\centering
+\caption{Algorithmic risks and mitigations.}
+\label{tab:risks}
+\begin{tabular}{@{}p{0.28\linewidth}p{0.62\linewidth}@{}}
+\toprule
+\textbf{Risk} & \textbf{Mitigation in this project} \\
+\midrule
+False positives & Context tab, false-alarm workflow, maintenance badges \\
+Over-trust in accuracy \% & Disclaimer; rules comparison; open source \\
+Biased labels & Documented simulator definition of leak \\
+Opaque model & Logistic regression with explicit features \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+Experts in AI ethics stress that algorithms require informed human use and quality data: \textbf{operators must understand what the score means} before dispatching crews.
+
+\subsection{Software limitations}
+
+\begin{itemize}
+    \item Train/test split may leak zone-hour correlation structure (optimistic metrics).
+    \item \texttt{readings} array grows without bound during long simulations.
+    \item No persistence of models across browser sessions.
+    \item Weather largely decoupled from per-row generation in bulk history.
+    \item Ticket counter does not reset on demo reset.
+    \item No spatial correlation between neighboring zones in the model.
+\end{itemize}
+
+\subsection{Legal and trademark note}
+
+``DC Water'' in the project title refers to the \textbf{geographic and pedagogical setting} only. The project is an unofficial educational demonstration.
+
+%----------------------------------------------------------------------
+\section{Conclusion and future work}
+\label{sec:conclusion}
+
+\subsection{Conclusion}
+
+This thesis has presented a complete account of an educational leak monitoring dashboard that unifies synthetic SCADA simulation, browser-based logistic regression, rule-based comparison, geospatial visualization, contextual operational review, and operator workflow management. The system answers a clearly stated problem---how to teach end-to-end utility analytics without confidential data---while remaining transparent about its synthetic and non-operational nature.
+
+The main intellectual contribution is \textbf{integration for learning}: showing that detection scores, map symbology, incident records, and human procedures are distinct layers that must align but often do not. Students who complete the interactive guide have traversed a miniature control-room narrative with runnable evidence rather than slides alone.
+
+\subsection{Future work}
+
+\begin{enumerate}
+    \item Empirical validation on public leak benchmark datasets with proper zone-level cross-validation.
+    \item Time-series models (ARIMA, LSTM, temporal CNN) with exported evaluation reports.
+    \item Spatial features from adjacency graphs between DMAs (graph neural network extension).
+    \item CMMS integration mock API for work orders and crew GPS.
+    \item Persistence and model registry via IndexedDB or a backend service.
+    \item Formal usability study with utility trainees or engineering students.
+    \item Hydraulic simulator coupling for physically consistent leak signatures.
+    \item Bilingual UI and accessibility audit (WCAG).
+\end{enumerate}
+
+\subsection{Closing remarks}
+
+Artificial intelligence in water distribution is not merely a matter of fitting classifiers to pressure traces. It requires \textbf{context}, \textbf{human accountability}, and \textbf{honest communication} of uncertainty. This project embeds those principles in software architecture and documentation so that the next step---whether toward research, utility pilot, or policy discussion---begins from a realistic foundation.
+
+%----------------------------------------------------------------------
+\begin{thebibliography}{9}
+
+\bibitem{mckinsey}
+McKinsey \& Company, Definitions of artificial intelligence and machine learning (introductory materials).
+
+\bibitem{mathworks}
+MathWorks, Reinforcement learning with deep neural networks, \url{https://www.mathworks.com/help/deeplearning/ug/reinforcement-learning-using-deep-neural-networks.html}.
+
+\bibitem{borealis}
+Borealis AI, Tutorial on few-shot learning and meta-learning, \url{https://www.borealisai.com/research-blogs/tutorial-2-few-shot-learning-and-meta-learning-i}.
+
+\bibitem{gordaliza}
+P.~Gordaliza, Interview on algorithmic responsibility, \emph{El Pa\'{\i}s} (English), 2023, \url{https://english.elpais.com/science-tech/2023-07-19/paula-gordaliza-mathematician-algorithms-do-not-work-alone-whoever-uses-them-should-know-what-they-are-doing-and-why-these-decisions-are-being-made.html}.
+
+\bibitem{mendeley}
+Leak simulation benchmark dataset, Mendeley Data, \url{https://data.mendeley.com/datasets/tbrnp6vrnj/1}.
+
+\bibitem{leakdb}
+Water Benchmark Hub, LeakDB documentation, \url{https://waterbenchmarkhub.readthedocs.io/en/stable/water_benchmark_hub.leakdb.html}.
+
+\bibitem{osm}
+OpenStreetMap contributors, Map tiles and attribution, \url{https://www.openstreetmap.org/copyright}.
+
+\bibitem{leaflet}
+Leaflet.js project, \url{https://leafletjs.com/}.
+
+\bibitem{chartjs}
+Chart.js project, \url{https://www.chartjs.org/}.
+
+\end{thebibliography}
+
+%----------------------------------------------------------------------
+\appendix
+\section{User guide step summary}
+\label{app:guide}
+
+\begin{table}[htbp]
+\centering
+\caption{Interactive user guide steps.}
+\begin{tabular}{@{}clp{0.48\linewidth}@{}}
+\toprule
+\textbf{Step} & \textbf{Title} & \textbf{Learning focus} \\
+\midrule
+1 & Start with a clean dashboard & Baseline empty state \\
+2 & Load synthetic SCADA data & Volume and structure of telemetry \\
+3 & Train the leak detection model & Supervised learning in browser \\
+4 & Explore a zone & Inspection before action \\
+5 & Turn on live simulation & Streaming SCADA \\
+6 & Open a flagged zone & Map--incident linking \\
+7 & Read operational context & False positive reasoning \\
+8 & Close a false alarm (optional) & Operator feedback loop \\
+9 & Complete the leak workflow & Dispatch narrative \\
+10 & Stop and explore & Independent experimentation \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\section{Software module map}
+\label{app:modules}
+
+\begin{table}[htbp]
+\centering
+\caption{Main source files.}
+\begin{tabular}{@{}ll@{}}
+\toprule
+\textbf{Path} & \textbf{Role} \\
+\midrule
+\texttt{index.html} & Application shell \\
+\texttt{js/app.js} & Orchestration and UI \\
+\texttt{js/data.js} & Synthetic SCADA \\
+\texttt{js/context.js} & Scenarios and context \\
+\texttt{js/ml.js} & Training and inference \\
+\texttt{js/workflow.js} & Operator state machine \\
+\texttt{js/map.js} & Leaflet integration \\
+\texttt{js/charts.js} & Chart.js zone history \\
+\texttt{js/user-guide.js} & Tutorial engine \\
+\texttt{js/zones.js} & Zone catalog \\
+\texttt{js/config.js} & Constants \\
+\texttt{js/theme.js} & Theming \\
+\texttt{README.md} & User documentation \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\section{Suggested thesis front matter (institutional submission)}
+\label{app:frontmatter}
+
+\noindent\textit{Complete the bracketed fields when submitting to a university.}
+
+\begin{table}[htbp]
+\centering
+\caption{Institutional submission fields.}
+\begin{tabular}{@{}ll@{}}
+\toprule
+\textbf{Field} & \textbf{Content} \\
+\midrule
+Title & Application of Machine Learning and Operational Workflow Design to Synthetic Water Distribution Network Monitoring \\
+Author & Suad Arzimanli \\
+Institution & [University / program] \\
+Supervisor & [Advisor name] \\
+Date & [Month, Year] \\
+Degree & [e.g., B.Sc.\ / M.Eng.\ project report] \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\end{document}

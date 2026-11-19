@@ -1,0 +1,29 @@
+@page
+@model ZurichTreeManagement.Web.Pages.Account.LogoutModel
+@{
+    Layout = null;
+    ViewData["Title"] = "Signed out";
+}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>@ViewData["Title"] — Zurich Tree Management</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
+</head>
+<body class="auth-page">
+    <div class="auth-card">
+        <div class="auth-card__brand">
+            <span class="auth-card__logo" aria-hidden="true"></span>
+            <h1>Signed out</h1>
+        </div>
+        <p class="auth-card__lead">You have been signed out of Zurich Tree Management.</p>
+        <a class="auth-btn auth-btn--block" href="/Account/Login">Sign in again</a>
+        <a class="auth-guest-link" href="/">Return to map</a>
+    </div>
+</body>
+</html>

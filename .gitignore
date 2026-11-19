@@ -1,0 +1,16 @@
+## Build / IDE
+**/bin/
+**/obj/
+**/.vs/
+*.user
+*.suo
+*.swp
+
+## OS
+.DS_Store
+Thumbs.db
+
+## Secrets / local overrides (never commit)
+**/appsettings.Development.local.json
+**/.env
+**/.env.*

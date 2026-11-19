@@ -1,0 +1,56 @@
+@page
+@model ZurichTreeManagement.Web.Pages.Account.LoginModel
+@{
+    Layout = null;
+    ViewData["Title"] = "Sign in";
+}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>@ViewData["Title"] — Zurich Tree Management</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
+</head>
+<body class="auth-page">
+    <div class="auth-card">
+        <div class="auth-card__brand">
+            <span class="auth-card__logo" aria-hidden="true"></span>
+            <h1>Zurich Tree Management</h1>
+        </div>
+        <p class="auth-card__lead">Sign in to manage service requests on the map.</p>
+
+        @if (Model.DemoEnabled && Model.DemoUsers.Count > 0)
+        {
+            <div class="auth-demo-hint" role="note">
+                <strong>Demo accounts</strong>
+                <ul>
+                    @foreach (var user in Model.DemoUsers)
+                    {
+                        <li><code>@user.Login</code> / <code>@user.Password</code> — @user.DisplayName</li>
+                    }
+                </ul>
+            </div>
+        }
+
+        <form method="post" class="auth-form">
+            <input type="hidden" name="returnUrl" value="@Model.ReturnUrl" />
+            <div asp-validation-summary="ModelOnly" class="auth-form__error"></div>
+            <label class="auth-field">
+                <span>Login name</span>
+                <input asp-for="Input.Login" autocomplete="username" />
+            </label>
+            <label class="auth-field">
+                <span>Password</span>
+                <input asp-for="Input.Password" type="password" autocomplete="current-password" />
+            </label>
+            <button type="submit" class="auth-btn">Sign in</button>
+        </form>
+
+        <a class="auth-guest-link" href="/">Continue to map without signing in</a>
+    </div>
+</body>
+</html>
