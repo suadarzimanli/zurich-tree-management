@@ -1,5 +1,7 @@
 # Zurich Tree Management
 
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.24405300.svg)](https://doi.org/10.5281/zenodo.24405300)
+
 A research demonstrator for **street-tree service requests** in Zürich: citizens report a problem with a specific tree from the City's open tree register (Baumkataster), and staff work each request through **inspection → work order → closure** under one reference number.
 
 > **Disclaimer.** Independent research and teaching project. Not affiliated with, endorsed by or operated for the City of Zürich. Not for real reports.
