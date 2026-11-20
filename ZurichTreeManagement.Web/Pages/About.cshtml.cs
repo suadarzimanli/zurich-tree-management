@@ -24,6 +24,6 @@ public class AboutModel : PageModel
     MinTreeLayerZoom = _configuration.GetValue("Map:MinTreeLayerZoom", _configuration.GetValue("Map:MinTreeZoom", 13));
     MinTreeClickZoom = _configuration.GetValue("Map:MinTreeClickZoom", 19);
     MinSrZoom = _configuration.GetValue("Map:MinSrZoom", 19);
-    MapPickRadiusM = _configuration.GetValue("Map:PickRadiusM", 5);
+    MapPickRadiusM = _configuration.GetValue("Map:PickRadiusM", 10);
   }
 }

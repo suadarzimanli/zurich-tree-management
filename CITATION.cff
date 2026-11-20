@@ -1,0 +1,24 @@
+cff-version: 1.2.0
+title: "Zurich Tree Management"
+message: "If you use this software or analysis, please cite it as below."
+type: software
+authors:
+  - family-names: Arzimanli
+    given-names: Suad
+    affiliation: "University of Łódź"
+version: 1.0.0
+date-released: 2026-11-20
+license: MIT
+repository-code: "https://github.com/suadarzimanli/zurich-tree-management"
+keywords:
+  - urban forestry
+  - service requests
+  - open government data
+  - web GIS
+  - privacy by design
+  - Zürich
+abstract: >-
+  Research demonstrator for street-tree service requests anchored to the tree
+  in the City of Zürich open tree cadastre, with resident reporting, public
+  tracking without personal data, a staff desk, and a city-wide analysis of
+  location ambiguity and map-selection rules under touch error.

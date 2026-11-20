@@ -11,7 +11,9 @@
     var mapInstance = null;
     var pickCircle = null;
 
-    var DEFAULT_RADIUS_M = 5;
+    // 10 m: keeps the intended tree in the list even when a tap misses by ~8 m
+    // (see research_materials/analysis/pick_design.md)
+    var DEFAULT_RADIUS_M = 10;
 
     function t(key, vars) {
         var i18n = global.ZurichI18n;

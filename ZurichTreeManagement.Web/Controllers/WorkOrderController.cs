@@ -17,7 +17,7 @@ public sealed class WorkOrderController : ControllerBase
     public async Task<ActionResult<WorkOrderDto>> GetBySr(long srNumber, CancellationToken cancellationToken)
     {
         var workOrder = await _workflow.GetWorkOrderBySrAsync(srNumber, cancellationToken);
-        return workOrder is null ? NotFound() : Ok(workOrder);
+        return workOrder is null ? NotFound() : Ok(PublicRedaction.Apply(workOrder, User));
     }
 
     [Authorize]

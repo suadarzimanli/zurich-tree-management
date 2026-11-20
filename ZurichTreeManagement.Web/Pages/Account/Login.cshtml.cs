@@ -4,11 +4,13 @@ using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
+using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.Extensions.Options;
 using ZurichTreeManagement.Web.Services;
 
 namespace ZurichTreeManagement.Web.Pages.Account;
 
+[EnableRateLimiting(RateLimits.SignIn)]
 public sealed class LoginModel : PageModel
 {
     private readonly DemoAuthService _auth;
@@ -69,6 +71,7 @@ public sealed class LoginModel : PageModel
                 ExpiresUtc = DateTimeOffset.UtcNow.AddHours(8)
             });
 
-        return LocalRedirect(ReturnUrl);
+        // Only ever return to a page of this site (no open redirect); otherwise go home.
+        return LocalRedirect(Url.IsLocalUrl(ReturnUrl) ? ReturnUrl : "/");
     }
 }

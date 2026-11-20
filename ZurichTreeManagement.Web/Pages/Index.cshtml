@@ -12,8 +12,8 @@
     <title>@ViewData["Title"]</title>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400&display=swap" rel="stylesheet" />
-    <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500;600&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="~/css/app.css" asp-append-version="true" />
     <script>
         (function () {
             var t = localStorage.getItem('zurich-theme');
@@ -168,47 +168,24 @@
         </aside>
 
         <div class="app-main">
-            <header class="app-header">
-                <h1 class="app-header__title" data-i18n="app.title">Zurich Tree Management</h1>
-                <div class="app-header__right">
-                    <div class="header-toolbar">
-                        <div class="header-zoom-badge" id="header-zoom-badge" data-i18n-title="header.zoom" data-i18n-aria="header.zoom" title="Map zoom" aria-label="Map zoom level">
-                            <span id="header-zoom-value">@Model.InitialZoom</span>
-                        </div>
-                        <div class="header-toggle" role="group" aria-label="Theme">
-                            <button type="button" id="theme-toggle-light" class="header-toggle__btn header-toggle__btn--active" data-theme-value="light" data-i18n-title="theme.light" title="Light mode" aria-pressed="true">
-                                <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="5" fill="currentColor"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
-                            </button>
-                            <button type="button" id="theme-toggle-dark" class="header-toggle__btn" data-theme-value="dark" data-i18n-title="theme.dark" title="Dark mode" aria-pressed="false">
-                                <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 14.5A8.5 8.5 0 1112.5 3a6.5 6.5 0 109.5 11.5z" fill="currentColor"/></svg>
-                            </button>
-                        </div>
-                        <div class="header-toggle" role="group" aria-label="Language">
-                            <button type="button" id="lang-toggle-en" class="header-toggle__btn header-toggle__btn--active" data-lang="en" aria-pressed="true">EN</button>
-                            <button type="button" id="lang-toggle-de" class="header-toggle__btn" data-lang="de" aria-pressed="false">DE</button>
-                        </div>
-                        <a href="/ServiceRequests" class="header-about-btn" data-i18n="nav.serviceRequests">Service requests</a>
-                        <a href="/About" class="header-about-btn" data-i18n="nav.about">About</a>
-                    </div>
-                    <div class="app-header__user">
-                    @if (Model.IsAuthenticated)
-                    {
-                        <span class="app-header__name">@Model.UserDisplayName</span>
-                        @if (!string.IsNullOrEmpty(Model.UserRole))
-                        {
-                            <span class="app-header__role">@Model.UserRole</span>
-                        }
-                    }
-                    else
-                    {
-                        <a class="app-header__signin" href="@Model.LoginPath" data-i18n="nav.signIn">Sign in</a>
-                    }
-                    </div>
-                </div>
-            </header>
+            @{ ViewData["Active"] = "map"; ViewData["ShowReport"] = true; ViewData["ShowZoom"] = true; }
+            <partial name="_TopBar" />
             <div id="map-shell" class="app-map-canvas">
         <div id="map-status" class="map-status" role="status" aria-live="polite">
             Stadt Zürich — Baumkataster (OGD). Trees &amp; SRs visible from zoom @Model.MinTreeLayerZoom+; clickable from zoom @Model.MinTreeClickZoom+.
+        </div>
+        <button type="button" id="map-search-pill" class="map-search-pill">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6.5" fill="none" stroke="currentColor" stroke-width="2"/><path d="M15.5 15.5 21 21" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+            <span data-i18n="map.searchPill">Search an address or tree number</span>
+        </button>
+        <div id="report-banner" class="report-banner" hidden role="status" aria-live="polite">
+            <span class="report-banner__pulse" aria-hidden="true"></span>
+            <p class="report-banner__text" id="report-banner-text" data-i18n="report.banner">Tap the tree you want to report. Zoom in to street level first.</p>
+            <div class="report-banner__actions">
+                <button type="button" id="report-locate" class="btn btn--light btn--sm" data-i18n="report.useLocation">Use my location</button>
+                <button type="button" id="report-zoom" class="btn btn--light btn--sm" data-i18n="report.zoomIn">Zoom to street level</button>
+                <button type="button" id="report-cancel" class="btn btn--quiet-inverse btn--sm" data-i18n="report.cancel">Cancel</button>
+            </div>
         </div>
         <div class="map-map-overlays">
             <aside id="map-legend" class="map-legend map-legend--collapsed" aria-labelledby="map-legend-title">
@@ -255,110 +232,119 @@
             <aside id="tree-detail-panel" class="side-panel tree-detail-panel" hidden aria-hidden="true" aria-labelledby="tree-detail-heading">
                 <div class="side-panel__header">
                     <div class="side-panel__title-wrap">
-                        <h2 id="tree-detail-heading" data-i18n="tree.panel.title">Tree details</h2>
-                        <span id="tree-detail-title" class="side-panel__badge"></span>
+                        <p class="eyebrow" data-i18n="tree.panel.title">Tree details</p>
+                        <h2 id="tree-detail-heading" class="tree-hero__name"><span id="tree-detail-title"></span></h2>
+                        <p class="tree-hero__latin" id="tree-detail-latin"></p>
                     </div>
                     <button type="button" id="tree-detail-close" class="side-panel__close" data-i18n-aria="tree.panel.close" aria-label="Close">×</button>
                 </div>
                 <div class="side-panel__body">
-                    <p class="tree-detail-source" data-i18n="tree.panel.source">Official Stadt Zürich Baumkataster (OGD) — read-only</p>
-                    <div class="wf-grid">
-                        <label class="wf-field"><span data-i18n="field.baumnummer">Baumnummer</span><input type="text" id="tree-detail-baumnummer" readonly /></label>
-                        <label class="wf-field"><span data-i18n="field.objectId">Object ID</span><input type="text" id="tree-detail-objectid" readonly /></label>
-                        <label class="wf-field wf-field--wide"><span data-i18n="field.speciesLatin">Species (Latin)</span><input type="text" id="tree-detail-species-lat" readonly /></label>
-                        <label class="wf-field wf-field--wide"><span data-i18n="field.speciesGerman">Species (German)</span><input type="text" id="tree-detail-species-de" readonly /></label>
-                        <label class="wf-field"><span data-i18n="field.quarter">Quarter</span><input type="text" id="tree-detail-quarter" readonly /></label>
-                        <label class="wf-field wf-field--wide"><span data-i18n="field.street">Street</span><input type="text" id="tree-detail-street" readonly /></label>
-                        <label class="wf-field"><span data-i18n="field.category">Category</span><input type="text" id="tree-detail-category" readonly /></label>
-                        <label class="wf-field"><span data-i18n="field.status">Status</span><input type="text" id="tree-detail-status" readonly /></label>
-                        <label class="wf-field"><span data-i18n="field.crownDiameter">Crown diameter</span><input type="text" id="tree-detail-crown" readonly /></label>
-                        <label class="wf-field"><span data-i18n="field.planted">Planted</span><input type="text" id="tree-detail-planted" readonly /></label>
-                        <label class="wf-field"><span data-i18n="field.sizeClass">Size class</span><input type="text" id="tree-detail-size" readonly /></label>
+                    <div class="tree-hero__stats">
+                        <div class="stat"><span class="stat__value mono" id="tree-detail-baumnummer-v">—</span><span class="stat__label" data-i18n="field.baumnummer">Baumnummer</span></div>
+                        <div class="stat"><span class="stat__value" id="tree-detail-age-v">—</span><span class="stat__label" id="tree-detail-planted-v">—</span></div>
+                        <div class="stat"><span class="stat__value" id="tree-detail-crown-v">—</span><span class="stat__label" data-i18n="field.crownDiameter">Crown diameter</span></div>
                     </div>
+                    <dl class="facts">
+                        <div><dt data-i18n="field.street">Street</dt><dd id="tree-detail-street-v">—</dd></div>
+                        <div><dt data-i18n="field.quarter">Quarter</dt><dd id="tree-detail-quarter-v">—</dd></div>
+                        <div><dt data-i18n="field.category">Category</dt><dd id="tree-detail-category-v">—</dd></div>
+                        <div><dt data-i18n="field.status">Status</dt><dd id="tree-detail-status-v">—</dd></div>
+                        <div><dt data-i18n="field.sizeClass">Size class</dt><dd id="tree-detail-size-v">—</dd></div>
+                        <div><dt data-i18n="field.objectId">Object ID</dt><dd class="mono" id="tree-detail-objectid-v">—</dd></div>
+                    </dl>
+                    <button type="button" id="tree-report-btn" class="btn btn--primary btn--block" data-i18n="report.fromTree">Report an issue with this tree</button>
+                    <p class="source-note" data-i18n="tree.panel.source">Official Stadt Zürich Baumkataster (OGD) — read-only</p>
                 </div>
             </aside>
             <aside id="sr-create-panel" class="side-panel sr-create-panel" hidden aria-hidden="true" aria-labelledby="sr-create-title">
                 <div class="side-panel__header">
-                    <h2 id="sr-create-title" data-i18n="sr.panel.title">Create Service Request</h2>
+                    <div class="side-panel__title-wrap">
+                        <p class="eyebrow" id="report-step-count"></p>
+                        <h2 id="sr-create-title" data-i18n="report.title">Report a tree issue</h2>
+                    </div>
                     <button type="button" id="sr-close" class="side-panel__close" data-i18n-aria="tree.panel.close" aria-label="Close">×</button>
                 </div>
+                <ol class="wizard-steps" id="report-steps" aria-hidden="true">
+                    <li data-step-dot="1"><span data-i18n="step.tree">Tree</span></li>
+                    <li data-step-dot="2"><span data-i18n="step.issue">Issue</span></li>
+                    <li data-step-dot="3"><span data-i18n="step.contact">Contact</span></li>
+                    <li data-step-dot="4"><span data-i18n="step.review">Review</span></li>
+                </ol>
                 <div class="side-panel__body">
                 <form id="sr-create-form" class="sr-create-form" novalidate>
                     <p id="sr-create-message" class="sr-create-message" role="status" aria-live="polite"></p>
 
-                    <section class="sr-create-section">
-                        <h3 data-i18n="section.linkedTreeOgd">Linked tree (OGD)</h3>
-                        <div class="sr-create-grid">
-                            <label class="sr-create-field">
-                                <span data-i18n="field.linkedTree">Linked Tree</span>
-                                <input type="text" id="sr-linked-tree" readonly />
-                            </label>
-                            <label class="sr-create-field">
-                                <span data-i18n="field.speciesGerman">Species (German)</span>
-                                <input type="text" id="sr-species-de" readonly />
-                            </label>
-                            <label class="sr-create-field">
-                                <span data-i18n="field.speciesLatin">Species (Latin)</span>
-                                <input type="text" id="sr-species-lat" readonly />
-                            </label>
-                            <label class="sr-create-field">
-                                <span data-i18n="field.quarter">Quarter</span>
-                                <input type="text" id="sr-quarter" readonly />
-                            </label>
-                            <label class="sr-create-field sr-create-field--wide">
-                                <span data-i18n="field.street">Street</span>
-                                <input type="text" id="sr-street" readonly />
-                            </label>
+                    <section class="wizard-step" data-step="1">
+                        <h3 class="wizard-step__title" data-i18n="report.treeHeading">Is this the right tree?</h3>
+                        <div class="tree-card">
+                            <span class="tree-card__icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M12 22v-7m0 0c-4 0-7-2.6-7-6.2C5 5 8.1 2 12 2s7 3 7 6.8C19 12.4 16 15 12 15Z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/></svg></span>
+                            <div>
+                                <p class="tree-card__name" id="report-tree-name">—</p>
+                                <p class="tree-card__latin" id="report-tree-latin"></p>
+                                <p class="tree-card__meta"><span class="mono" id="report-tree-number"></span><span id="report-tree-street"></span></p>
+                            </div>
                         </div>
+                        <label class="sr-create-field sr-create-field--wide"><span data-i18n="report.location">Location</span><input type="text" id="sr-address" readonly class="input-plain" /></label>
+                        <div id="report-existing" class="notice notice--info" hidden></div>
+                        <input type="hidden" id="sr-linked-tree" /><input type="hidden" id="sr-species-de" /><input type="hidden" id="sr-species-lat" />
+                        <input type="hidden" id="sr-quarter" /><input type="hidden" id="sr-street" /><input type="hidden" id="sr-lat" /><input type="hidden" id="sr-lng" />
                     </section>
 
-                    <section class="sr-create-section">
-                        <h3 data-i18n="section.contact">Contact</h3>
-                        <div class="sr-create-grid">
-                            <label class="sr-create-field">
-                                <span data-i18n="field.firstName">First name *</span>
-                                <input type="text" id="sr-first-name" required autocomplete="given-name" />
-                            </label>
-                            <label class="sr-create-field">
-                                <span data-i18n="field.lastName">Last name *</span>
-                                <input type="text" id="sr-last-name" required autocomplete="family-name" />
-                            </label>
-                            <label class="sr-create-field">
-                                <span data-i18n="field.email">Email *</span>
-                                <input type="email" id="sr-email" required autocomplete="email" />
-                            </label>
-                            <label class="sr-create-field">
-                                <span data-i18n="field.phone">Phone</span>
-                                <input type="tel" id="sr-phone" autocomplete="tel" />
-                            </label>
-                        </div>
+                    <section class="wizard-step" data-step="2" hidden>
+                        <h3 class="wizard-step__title" data-i18n="report.issueHeading">What is the issue?</h3>
+                        <div class="issue-grid" id="report-issue-grid" role="radiogroup" aria-labelledby="report-issue-label"></div>
+                        <p id="report-issue-label" class="visually-hidden" data-i18n="field.requestType">Request type</p>
+                        <select id="sr-request-type" class="visually-hidden" tabindex="-1" aria-hidden="true" required>
+                            <option value="" data-i18n="sr.selectRequestType">— Select request type —</option>
+                        </select>
+                        <div id="report-emergency" class="notice notice--danger" hidden data-i18n="report.emergency">If anyone is in danger right now, call 117 (police) or 118 (fire brigade) first.</div>
+                        <label class="sr-create-field sr-create-field--wide">
+                            <span data-i18n="report.descLabel">Describe it (optional)</span>
+                            <textarea id="sr-description" rows="3" maxlength="4000" data-i18n-placeholder="report.descPlaceholder" placeholder="What did you notice?"></textarea>
+                        </label>
                     </section>
 
-                    <section class="sr-create-section">
-                        <h3 data-i18n="section.request">Request</h3>
-                        <label class="sr-create-field sr-create-field--wide">
-                            <span data-i18n="field.requestType">Request type *</span>
-                            <select id="sr-request-type" required>
-                                <option value="" data-i18n="sr.selectRequestType">— Select request type —</option>
-                            </select>
-                        </label>
-                        <label class="sr-create-field sr-create-field--wide">
-                            <span data-i18n="field.description">Description</span>
-                            <textarea id="sr-description" rows="3" data-i18n-placeholder="sr.descPlaceholder" placeholder="Optional details for the forestry team"></textarea>
-                        </label>
-                        <label class="sr-create-field sr-create-field--wide">
-                            <span data-i18n="field.location">Location</span>
-                            <input type="text" id="sr-address" readonly />
-                        </label>
-                        <input type="hidden" id="sr-lat" />
-                        <input type="hidden" id="sr-lng" />
+                    <section class="wizard-step" data-step="3" hidden>
+                        <h3 class="wizard-step__title" data-i18n="report.contactHeading">How can we reach you?</h3>
+                        <div class="sr-create-grid">
+                            <label class="sr-create-field"><span data-i18n="field.firstName">First name *</span><input type="text" id="sr-first-name" required autocomplete="given-name" maxlength="128" /></label>
+                            <label class="sr-create-field"><span data-i18n="field.lastName">Last name *</span><input type="text" id="sr-last-name" required autocomplete="family-name" maxlength="128" /></label>
+                            <label class="sr-create-field sr-create-field--wide"><span data-i18n="field.email">Email *</span><input type="email" id="sr-email" required autocomplete="email" maxlength="256" /></label>
+                            <label class="sr-create-field sr-create-field--wide"><span data-i18n="field.phone">Phone</span><input type="tel" id="sr-phone" autocomplete="tel" maxlength="64" /></label>
+                        </div>
+                        <p class="privacy-note"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3 5 6v5c0 4.4 3 8.4 7 9.5 4-1.1 7-5.1 7-9.5V6l-7-3Z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/></svg><span data-i18n="report.privacyNote">Only city staff can see your contact details.</span></p>
+                    </section>
+
+                    <section class="wizard-step" data-step="4" hidden>
+                        <h3 class="wizard-step__title" data-i18n="report.reviewHeading">Check your report</h3>
+                        <dl class="review-list" id="report-review"></dl>
                     </section>
 
                     <div class="sr-create-actions">
-                        <button type="submit" id="sr-submit" class="sr-create-btn sr-create-btn--primary" data-i18n="sr.btn.create">Create SR</button>
-                        <button type="button" id="sr-cancel" class="sr-create-btn sr-create-btn--secondary" data-i18n="sr.btn.cancel">Cancel</button>
+                        <button type="button" id="report-back" class="btn btn--ghost" data-i18n="step.back">Back</button>
+                        <button type="button" id="report-next" class="btn btn--primary" data-i18n="step.next">Continue</button>
+                        <button type="submit" id="sr-submit" class="btn btn--primary" hidden data-i18n="step.submit">Send report</button>
+                        <button type="button" id="sr-cancel" class="visually-hidden" tabindex="-1" data-i18n="sr.btn.cancel">Cancel</button>
                     </div>
                 </form>
+
+                <section id="report-done" class="report-done" hidden aria-live="polite">
+                    <div class="report-done__check" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="m5 12.5 4.5 4.5L19 7.5" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+                    <h3 data-i18n="report.doneTitle">Report received</h3>
+                    <p class="report-done__ref-label" data-i18n="report.doneRef">Your reference number</p>
+                    <p class="report-done__ref mono" id="report-done-ref">—</p>
+                    <h4 data-i18n="report.doneNext">What happens next</h4>
+                    <ol class="next-steps">
+                        <li data-i18n="report.next1">An arborist inspects the tree.</li>
+                        <li data-i18n="report.next2">If work is needed, a work order is scheduled.</li>
+                        <li data-i18n="report.next3">You can follow every step with your reference number.</li>
+                    </ol>
+                    <div class="report-done__actions">
+                        <a id="report-done-track" class="btn btn--primary" href="/Track" data-i18n="report.track">Track this request</a>
+                        <button type="button" id="report-done-workflow" class="btn btn--ghost" hidden data-i18n="report.openWorkflow">Open in workflow</button>
+                        <button type="button" id="report-done-close" class="btn btn--ghost" data-i18n="report.done">Done</button>
+                    </div>
+                </section>
                 </div>
             </aside>
             <aside id="workflow-panel" class="side-panel workflow-panel" hidden aria-hidden="true" aria-labelledby="workflow-panel-title">
@@ -370,6 +356,10 @@
                     <button type="button" id="workflow-close" class="side-panel__close" data-i18n-aria="tree.panel.close" aria-label="Close">×</button>
                 </div>
 
+                <div class="wf-summary">
+                    <div id="wf-journey"></div>
+                    <p class="wf-summary__meta" id="wf-summary-meta"></p>
+                </div>
                 <nav class="wf-tabs" role="tablist" aria-label="SR workflow sections">
                     <button type="button" class="wf-tab wf-tab--active" data-tab="sr" role="tab" aria-selected="true" data-i18n="wf.tab.sr">SR details</button>
                     <button type="button" class="wf-tab" data-tab="inspection" role="tab" aria-selected="false" data-i18n="wf.tab.inspection">SR inspection</button>
@@ -393,6 +383,7 @@
                                 <label class="wf-field"><span data-i18n="field.species">Species</span><input type="text" id="wf-sr-species" readonly /></label>
                                 <label class="wf-field"><span data-i18n="field.quarter">Quarter</span><input type="text" id="wf-sr-quarter" readonly /></label>
                                 <label class="wf-field wf-field--wide"><span data-i18n="field.street">Street</span><input type="text" id="wf-sr-street" readonly /></label>
+                                <p class="notice notice--muted wf-field--wide" id="wf-contact-hidden" hidden data-i18n="case.contactHidden">Contact details are visible to signed-in staff only.</p>
                                 <label class="wf-field"><span data-i18n="field.contact">Contact</span><input type="text" id="wf-sr-contact" readonly /></label>
                                 <label class="wf-field"><span data-i18n="field.email">Email</span><input type="text" id="wf-sr-email" readonly /></label>
                                 <label class="wf-field wf-field--wide"><span data-i18n="field.location">Location</span><input type="text" id="wf-sr-address" readonly /></label>
@@ -503,6 +494,7 @@
             </script>
             <script src="~/lib/turf/turf.min.js" asp-append-version="true"></script>
             <script src="~/js/i18n.js" asp-append-version="true"></script>
+            <script src="~/js/phase.js" asp-append-version="true"></script>
             <script src="~/js/header-controls.js" asp-append-version="true"></script>
             <script src="~/js/app-shell.js" asp-append-version="true"></script>
             <script src="~/js/filter-panel.js" asp-append-version="true"></script>
@@ -514,6 +506,7 @@
             <script src="~/js/map-legend.js" asp-append-version="true"></script>
             <script src="~/js/map-click-pick.js" asp-append-version="true"></script>
             <script src="~/js/sr-form.js" asp-append-version="true"></script>
+            <script src="~/js/report-mode.js" asp-append-version="true"></script>
             <script src="~/js/map.js" asp-append-version="true"></script>
             <script async defer src="@Model.GoogleMapsScriptUrl"></script>
         }

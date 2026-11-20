@@ -17,6 +17,8 @@ public sealed class SrDetailDto
     public string LastName { get; set; } = "";
     public string Email { get; set; } = "";
     public string? Phone { get; set; }
+    /// <summary>True when contact fields were withheld (viewer not signed in).</summary>
+    public bool ContactRedacted { get; set; }
     public string? Description { get; set; }
     public string Address { get; set; } = "";
     public double Lat { get; set; }

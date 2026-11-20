@@ -1,0 +1,152 @@
+{
+  "inputs": {
+    "trees": 81403,
+    "addresses": 59330,
+    "downloaded_at": "2026-11-20T18:06Z",
+    "pick_radius_m": 10,
+    "far_from_address_m": 60,
+    "categories": {
+      "Parkbaum": 58226,
+      "Strassenbaum": 23177
+    }
+  },
+  "distance_tree_to_nearest_address_m": {
+    "median": 24.6,
+    "p90": 72.7,
+    "share_farther_than_60m": 0.1477
+  },
+  "by_group": {
+    "all trees": {
+      "street_name_only": {
+        "n_trees": 77990,
+        "median_candidates": 47.0,
+        "mean_candidates": 214.24,
+        "p90_candidates": 599.0,
+        "share_unique": 0.0578,
+        "share_5_or_more": 0.8062
+      },
+      "building_address": {
+        "n_trees": 69376,
+        "median_candidates": 8.0,
+        "mean_candidates": 20.16,
+        "p90_candidates": 51.0,
+        "share_unique": 0.0686,
+        "share_5_or_more": 0.6654
+      },
+      "map_tap_10m": {
+        "n_trees": 81403,
+        "median_candidates": 3.0,
+        "mean_candidates": 3.98,
+        "p90_candidates": 8.0,
+        "share_unique": 0.1751,
+        "share_5_or_more": 0.2604
+      },
+      "map_tap_10m_with_3m_tap_error": {
+        "n_trees": 81403,
+        "median_candidates": 3.0,
+        "mean_candidates": 3.89,
+        "p90_candidates": 7.0,
+        "share_unique": 0.1701,
+        "share_5_or_more": 0.2543,
+        "share_target_in_list": 1.0
+      },
+      "map_tap_10m_with_5m_tap_error": {
+        "n_trees": 81403,
+        "median_candidates": 3.0,
+        "mean_candidates": 3.78,
+        "p90_candidates": 7.0,
+        "share_unique": 0.1768,
+        "share_5_or_more": 0.242,
+        "share_target_in_list": 1.0
+      }
+    },
+    "street trees (Strassenbaum)": {
+      "street_name_only": {
+        "n_trees": 23152,
+        "median_candidates": 5.0,
+        "mean_candidates": 27.87,
+        "p90_candidates": 78.0,
+        "share_unique": 0.1138,
+        "share_5_or_more": 0.5184
+      },
+      "building_address": {
+        "n_trees": 22596,
+        "median_candidates": 3.0,
+        "mean_candidates": 6.1,
+        "p90_candidates": 13.0,
+        "share_unique": 0.1399,
+        "share_5_or_more": 0.3532
+      },
+      "map_tap_10m": {
+        "n_trees": 23177,
+        "median_candidates": 2.0,
+        "mean_candidates": 2.55,
+        "p90_candidates": 4.0,
+        "share_unique": 0.2528,
+        "share_5_or_more": 0.0731
+      },
+      "map_tap_10m_with_3m_tap_error": {
+        "n_trees": 23177,
+        "median_candidates": 2.0,
+        "mean_candidates": 2.4,
+        "p90_candidates": 4.0,
+        "share_unique": 0.2453,
+        "share_5_or_more": 0.0684,
+        "share_target_in_list": 1.0
+      },
+      "map_tap_10m_with_5m_tap_error": {
+        "n_trees": 23177,
+        "median_candidates": 2.0,
+        "mean_candidates": 2.34,
+        "p90_candidates": 4.0,
+        "share_unique": 0.2502,
+        "share_5_or_more": 0.0623,
+        "share_target_in_list": 1.0
+      }
+    },
+    "park & other trees": {
+      "street_name_only": {
+        "n_trees": 54838,
+        "median_candidates": 86.0,
+        "mean_candidates": 292.93,
+        "p90_candidates": 965.0,
+        "share_unique": 0.0341,
+        "share_5_or_more": 0.9278
+      },
+      "building_address": {
+        "n_trees": 46780,
+        "median_candidates": 13.0,
+        "mean_candidates": 26.95,
+        "p90_candidates": 65.0,
+        "share_unique": 0.0341,
+        "share_5_or_more": 0.8162
+      },
+      "map_tap_10m": {
+        "n_trees": 58226,
+        "median_candidates": 3.0,
+        "mean_candidates": 4.55,
+        "p90_candidates": 9.0,
+        "share_unique": 0.1442,
+        "share_5_or_more": 0.3349
+      },
+      "map_tap_10m_with_3m_tap_error": {
+        "n_trees": 58226,
+        "median_candidates": 3.0,
+        "mean_candidates": 4.48,
+        "p90_candidates": 8.0,
+        "share_unique": 0.1401,
+        "share_5_or_more": 0.3283,
+        "share_target_in_list": 1.0
+      },
+      "map_tap_10m_with_5m_tap_error": {
+        "n_trees": 58226,
+        "median_candidates": 3.0,
+        "mean_candidates": 4.36,
+        "p90_candidates": 8.0,
+        "share_unique": 0.1476,
+        "share_5_or_more": 0.3136,
+        "share_target_in_list": 1.0
+      }
+    }
+  }
+}

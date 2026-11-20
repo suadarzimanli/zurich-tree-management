@@ -269,7 +269,32 @@
         fillField('wf-sr-opened', formatDateTime(sr.openedAtUtc));
         fillField('wf-sr-closed', formatDateTime(sr.closedDate));
         fillField('wf-sr-description', sr.description || '');
+        bindSummary(sr);
         updateTabs(sr);
+    }
+
+    /** Journey bar + "open for N days" + privacy note (contact withheld for anonymous viewers). */
+    function bindSummary(sr) {
+        var phase = global.ZurichPhase;
+        if (phase) {
+            phase.render(byId('wf-journey'), phase.resolve(sr), { compact: true });
+            var meta = byId('wf-summary-meta');
+            if (meta) {
+                var api = i18nApi();
+                var bits = [];
+                if (sr.requestType) bits.push(api.translateRequestType ? api.translateRequestType(sr.requestType) : sr.requestType);
+                bits.push(phase.ageText(sr.openedAtUtc, sr.closedDate));
+                if (sr.priority === 'Urgent') bits.push('⚑ ' + (api.translatePriority ? api.translatePriority('Urgent') : 'Urgent'));
+                meta.textContent = bits.filter(Boolean).join(' · ');
+            }
+        }
+        var hidden = byId('wf-contact-hidden');
+        if (hidden) hidden.hidden = !sr.contactRedacted;
+        ['wf-sr-contact', 'wf-sr-email'].forEach(function (id) {
+            var input = byId(id);
+            var field = input && input.closest('.wf-field');
+            if (field) field.hidden = !!sr.contactRedacted;
+        });
     }
 
     function bindInspection(inspection, sr) {

@@ -28,6 +28,7 @@ builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationSc
     });
 
 builder.Services.AddAuthorization();
+builder.Services.AddAppRateLimits(builder.Configuration);
 
 builder.Services.AddHttpClient("ZurichOgd", client =>
 {
@@ -65,7 +66,11 @@ app.UseResponseCaching();
 app.UseRouting();
 app.UseAuthentication();
 app.UseAuthorization();
+app.UseRateLimiter();
 app.MapRazorPages();
 app.MapControllers();
 
 app.Run();
+
+/// <summary>Exposed for integration tests (WebApplicationFactory).</summary>
+public partial class Program { }

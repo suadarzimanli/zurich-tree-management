@@ -1,0 +1,65 @@
+@page
+@model TrackModel
+@{
+    Layout = null;
+}
+<!DOCTYPE html>
+<html lang="@(Model.IsGerman ? "de" : "en")" data-theme="light">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>@(Model.IsGerman ? "Anfrage verfolgen" : "Track a request") — @(Model.IsGerman ? "Zürich Baumverwaltung" : "Zurich Tree Management")</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500;600&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="~/css/app.css" asp-append-version="true" />
+    <script>(function () { if (localStorage.getItem('zurich-theme') === 'dark') document.documentElement.setAttribute('data-theme', 'dark'); })();</script>
+</head>
+<body class="page page--doc">
+    @{ ViewData["Active"] = "track"; }
+    <partial name="_TopBar" />
+    <main class="doc">
+        <section class="doc__intro">
+            <p class="eyebrow" data-i18n="nav.track">Track a request</p>
+            <h1 data-i18n="track.title">Track a request</h1>
+            <p class="lead" data-i18n="track.lead">Enter the reference number from your confirmation to see where your request is.</p>
+            <form class="track-form" id="track-form" novalidate>
+                <label for="track-input" class="track-form__label" data-i18n="track.label">Reference number</label>
+                <div class="track-form__row">
+                    <span class="track-form__prefix mono" aria-hidden="true">SR</span>
+                    <input id="track-input" class="mono" inputmode="numeric" autocomplete="off" maxlength="12" value="@Model.SrNumber" data-i18n-placeholder="track.placeholder" placeholder="e.g. 10015" />
+                    <button type="submit" class="btn btn--primary" data-i18n="track.go">Show status</button>
+                </div>
+                <p class="track-form__error" id="track-error" role="alert" hidden></p>
+            </form>
+        </section>
+
+        <section class="track-result" id="track-result" hidden aria-live="polite">
+            <header class="track-result__head">
+                <div>
+                    <p class="eyebrow mono" id="track-ref"></p>
+                    <h2 id="track-type"></h2>
+                    <p class="muted" id="track-age"></p>
+                </div>
+                <span class="phase-chip" id="track-phase"></span>
+            </header>
+            <div id="track-journey"></div>
+            <dl class="facts facts--wide">
+                <div><dt data-i18n="track.tree">Tree</dt><dd id="track-tree"></dd></div>
+                <div><dt data-i18n="track.where">Where</dt><dd id="track-where"></dd></div>
+                <div><dt data-i18n="track.opened">Opened</dt><dd id="track-opened"></dd></div>
+            </dl>
+            <ol class="timeline" id="track-timeline"></ol>
+            <div class="track-result__actions">
+                <a class="btn btn--ghost" id="track-map" href="/" data-i18n="track.onMap">Show on map</a>
+            </div>
+        </section>
+
+        <p class="privacy-note privacy-note--page"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3 5 6v5c0 4.4 3 8.4 7 9.5 4-1.1 7-5.1 7-9.5V6l-7-3Z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/></svg><span data-i18n="track.privacy">For privacy, this page never shows who filed a request.</span></p>
+    </main>
+    <script src="~/js/i18n.js" asp-append-version="true"></script>
+    <script src="~/js/phase.js" asp-append-version="true"></script>
+    <script src="~/js/header-controls.js" asp-append-version="true"></script>
+    <script src="~/js/track.js" asp-append-version="true"></script>
+</body>
+</html>

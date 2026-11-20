@@ -10,4 +10,6 @@ public sealed class SrListFilter
     public string? Search { get; set; }
     public DateTime? CreatedFrom { get; set; }
     public DateTime? CreatedTo { get; set; }
+    /// <summary>Search contact name/e-mail too (staff only — otherwise the search reveals who filed).</summary>
+    public bool IncludeContactSearch { get; set; }
 }

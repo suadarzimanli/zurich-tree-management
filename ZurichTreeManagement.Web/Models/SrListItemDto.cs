@@ -11,6 +11,7 @@ public sealed class SrListItemDto
     public string RequestType { get; set; } = "";
     public string LinkedTreeBaumnummer { get; set; } = "";
     public string ContactName { get; set; } = "";
+    public bool ContactRedacted { get; set; }
     public string? Address { get; set; }
     public string? AssignedTo { get; set; }
     public double Lat { get; set; }

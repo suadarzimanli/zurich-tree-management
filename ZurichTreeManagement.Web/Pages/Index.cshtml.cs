@@ -22,7 +22,7 @@ public class IndexModel : PageModel
     public string WmsFeatureInfoPath { get; private set; } = "/api/ogd/wms-feature-info";
     public string TreeSearchPath { get; private set; } = "/api/ogd/tree-by-baumnummer";
     public string TreesNearPath { get; private set; } = "/api/ogd/trees-near";
-    public int MapPickRadiusM { get; private set; } = 5;
+    public int MapPickRadiusM { get; private set; } = 10;
     public string CityBoundaryPath { get; private set; } = "/data/zurich-city-boundary-wgs84.geojson";
     public string SrCreatePath { get; private set; } = "/api/sr/create-from-map";
     public string SrGetPath { get; private set; } = "/api/sr/{srNumber}";
@@ -51,7 +51,7 @@ public class IndexModel : PageModel
         MinTreeClickZoom = _configuration.GetValue("Map:MinTreeClickZoom", 19);
         MinSrZoom = _configuration.GetValue("Map:MinSrZoom", 19);
         MaskBufferFeet = _configuration.GetValue("Map:MaskBufferFeet", 400);
-        MapPickRadiusM = _configuration.GetValue("Map:PickRadiusM", 5);
+        MapPickRadiusM = _configuration.GetValue("Map:PickRadiusM", 10);
 
         var apiKey = (_configuration["GoogleMaps:ApiKey"] ?? _configuration["AppSettings:GoogleMapsApiKey"] ?? "").Trim();
         HasGoogleMapsKey = apiKey.Length > 0;

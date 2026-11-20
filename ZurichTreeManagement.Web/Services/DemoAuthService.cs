@@ -1,4 +1,6 @@
 using System.Security.Claims;
+using System.Security.Cryptography;
+using System.Text;
 using Microsoft.Extensions.Options;
 
 namespace ZurichTreeManagement.Web.Services;
@@ -19,7 +21,7 @@ public sealed class DemoAuthService
 
         return _options.Users.FirstOrDefault(u =>
             string.Equals(u.Login, key, StringComparison.OrdinalIgnoreCase)
-            && u.Password == pwd);
+            && CryptographicOperations.FixedTimeEquals(Encoding.UTF8.GetBytes(u.Password), Encoding.UTF8.GetBytes(pwd)));
     }
 
     public static ClaimsPrincipal CreatePrincipal(DemoAuthUser user)

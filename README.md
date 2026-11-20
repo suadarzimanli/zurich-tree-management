@@ -1,111 +1,72 @@
-# Zurich Tree Management Application
+# Zurich Tree Management
 
-Educational web demonstrator for municipal tree service-request (SR) workflows, built for Stadt Zürich–style operations using **Open Government Data (OGD) Baumkataster**, a **Google Maps** front end, and a **SQL Server** workflow store.
+A research demonstrator for **street-tree service requests** in Zürich: citizens report a problem with a specific tree from the City's open tree register (Baumkataster), and staff work each request through **inspection → work order → closure** under one reference number.
 
-> **Disclaimer:** This is a research and teaching project. It is **not** affiliated with or endorsed by the City of Zürich.
+> **Disclaimer.** Independent research and teaching project. Not affiliated with, endorsed by or operated for the City of Zürich. Not for real reports.
 
-## Features
+## What it does
 
-- **Map** (`/`) — OGD tree overlay, SR markers, filters, tree/SR pick at high zoom, workflow side panel, citizen SR creation
-- **Service Request desk** (`/ServiceRequests`) — Card-based SR queue, search/filters, tabbed detail (overview, details, inspection, work order, activities)
-- **Workflow** — SR → inspection → work order → closed, with activity plans per request category
-- **i18n** — English and German UI
-- **Demo auth** — Read-only for anonymous users; sign in to edit records
+**For residents**
+- **Report a tree issue** — tap *Report a tree issue*, tap the tree (or use your location), then four short steps: *Tree → Issue → Contact → Review*. Works with touch, mouse and keyboard; no right-click needed.
+- **Duplicate check** — before reporting, the form shows open requests already filed for the same tree.
+- **Confirmation** — a reference number and "what happens next".
+- **Track a request** (`/Track`) — status, journey and dated timeline by reference number. **Never shows who filed it.**
 
-## Prerequisites
+**For staff** (sign in)
+- **Map** with the official tree layer, request pins coloured by phase, and a case panel.
+- **Desk** (`/ServiceRequests`) — queue overview (open, urgent, in inspection, work orders, closed, oldest open), aging per request, filters, and a case record with a progress bar and tabs for details, inspection, work order and activities.
 
-- [.NET 8 SDK](https://dotnet.microsoft.com/download)
-- SQL Server (local instance; default connection uses `localhost\MSSQLSERVER01`)
-- Google Maps JavaScript API key (for the map page)
+English / German, light / dark, phones to desktops.
 
-## Quick start
+## Design
 
-### 1. Database
+Grounded in how comparable services are built:
 
-Run the schema script in SQL Server Management Studio or `sqlcmd`:
+- **Citizen intake** follows [FixMyStreet](https://fixmystreet.org) — the platform behind Zürich's own *Züri wie neu* — location first, the report snapped to an asset (here the tree), category before contact details, and a duplicate check; and the [GOV.UK patterns](https://design-system.service.gov.uk/patterns/) *check answers* and *confirmation page*.
+- **The staff queue** follows case-management research: a short queue showing urgency and age, and a summarised status at the top of every case instead of a raw activity log.
+- **Visual language**: Swiss typographic style — Inter on a strict grid, restrained colour. Forest green means *action*; four phase colours (received, inspection, work order, closed) are identical on map pins, the desk and the tracking page. Mobile-first (`wwwroot/css/app.css`).
 
-```
-ZurichTreeManagement.Web/Scripts/CreateTreeManagementZurich.sql
-```
+## Privacy and security
 
-This creates database `TreeManagementZurich` and seeds activity-plan templates.
+- **Contact details and staff-internal notes are returned only to signed-in staff.** Anonymous API calls, the public map and the tracking page never contain a reporter's name, e-mail or phone, and anonymous search cannot match contact fields (`Services/PublicRedaction.cs`, covered by tests).
+- **Server-side validation** of citizen reports: location must be inside Zürich, request type from an allow-list, field lengths bounded.
+- **Rate limits** per IP for citizen reports and sign-in (`RateLimits:*` in configuration).
+- **Demo sign-in is off by default**; it is enabled only in `appsettings.Development.json`, which holds the demo accounts. Passwords are compared in constant time.
+- **No secrets in the repository.** The Google Maps key goes in the git-ignored `appsettings.Development.local.json`. Restrict the key to your own site addresses in Google Cloud.
+- A plain-language privacy notice is at `/Privacy`.
 
-### 2. Configuration
+## Run it
 
-Copy and edit local settings (git-ignored):
-
-```json
-// ZurichTreeManagement.Web/appsettings.Development.local.json
-{
-  "GoogleMaps": {
-    "ApiKey": "YOUR_GOOGLE_MAPS_API_KEY"
-  },
-  "ConnectionStrings": {
-    "TreeManagementZurich": "Server=localhost\\MSSQLSERVER01;Database=TreeManagementZurich;Trusted_Connection=True;TrustServerCertificate=True"
-  }
-}
-```
-
-### 3. Run
+Prerequisites: [.NET 8 SDK](https://dotnet.microsoft.com/download) (or newer), SQL Server (default instance name `localhost\MSSQLSERVER01`), a Google Maps JavaScript API key.
 
 ```bash
+# 1. Database (re-runnable), then optional fictional demo data (14 requests on real Zürich trees)
+sqlcmd -S "localhost\MSSQLSERVER01" -E -C -i ZurichTreeManagement.Web/Scripts/CreateTreeManagementZurich.sql
+sqlcmd -S "localhost\MSSQLSERVER01" -E -C -i ZurichTreeManagement.Web/Scripts/SeedDemoData.sql
+
+# 2. Google Maps key (git-ignored)
+#    ZurichTreeManagement.Web/appsettings.Development.local.json:
+#    { "GoogleMaps": { "ApiKey": "YOUR_KEY" } }
+
+# 3. Run
 cd ZurichTreeManagement.Web
 dotnet run --urls http://localhost:5160
 ```
 
-Open:
+Open http://localhost:5160 (map), `/ServiceRequests` (desk), `/Track` (tracking), `/About`.
 
-- Map: http://localhost:5160/
-- Desk: http://localhost:5160/ServiceRequests
-- About / user guide: http://localhost:5160/About
+## Tests
 
-### Demo login
-
-When `DemoAuth:Enabled` is true (default in `appsettings.json`):
-
-| User  | Password   | Role  |
-|-------|------------|-------|
-| admin | Demo2024!  | Admin |
-| user  | Demo2024!  | User  |
-
-## Project layout
-
-```
-ZurichTreeManagementApp/
-├── README.md                          ← this file
-├── Research/
-│   └── main.tex                       ← thesis / research paper (LaTeX)
-├── ExampleResearchOverleafFromDifferentProject/
-│   └── main (1).tex                   ← reference paper from prior project
-└── ZurichTreeManagement.Web/
-    ├── Controllers/                   ← REST API
-    ├── Pages/                         ← Razor UI (Map, Desk, About, Login)
-    ├── Services/                      ← Workflow, OGD proxy, activities
-    ├── Scripts/CreateTreeManagementZurich.sql
-    └── wwwroot/js/                    ← Map, desk, workflow, i18n
+```bash
+dotnet test ZurichTreeManagement.Tests
 ```
 
-## Research document
+18 tests: privacy redaction, location and request-type rules, demo sign-in hardening, and in-process API tests for validation, rate limiting and the sign-in requirement for edits (no database needed).
 
-A **design-research paper** (vision, theory, governance implications—not a code manual) is in **`Research/main.tex`**.
+## Data
 
-- Upload the `Research/` folder to [Overleaf](https://www.overleaf.com) and compile `main.tex`.
-- Add app screenshots to **`Research/figures/`** (see `figures/README.md` for filenames). The paper compiles without images and shows placeholders until you add them.
-- A built-in TikZ **conceptual model** diagram is included in the PDF; six screenshot slots cover map, desk, and workflow views.
+Tree data: City of Zürich Open Government Data — *Baumkataster* (WMS/WFS), used under the City's open-data terms. Request data is stored locally in SQL Server; the demo data set is entirely fictional (example.ch addresses).
 
-## API overview
+## Licence
 
-| Area        | Base route           |
-|-------------|----------------------|
-| Service requests | `/api/sr`       |
-| Inspections | `/api/inspection`    |
-| Work orders | `/api/workorder`     |
-| Activities  | `/api/activities`    |
-| Map markers | `/api/map/markers`   |
-| OGD proxy   | `/api/ogd`           |
-
-Write operations require authentication.
-
-## License / use
-
-For academic and demonstration purposes. Do not deploy demo credentials or synthetic citizen data to the public internet without hardening.
+Code: MIT.

@@ -10,6 +10,7 @@ public sealed class CreateSrRequest
     [Required]
     public double Lng { get; set; }
 
+    [MaxLength(512)]
     public string Address { get; set; } = "";
 
     [Required]

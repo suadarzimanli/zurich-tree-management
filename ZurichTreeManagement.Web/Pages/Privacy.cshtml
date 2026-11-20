@@ -1,8 +1,64 @@
 ﻿@page
 @model PrivacyModel
 @{
-    ViewData["Title"] = "Privacy Policy";
+    Layout = null;
 }
-<h1>@ViewData["Title"]</h1>
-
-<p>Use this page to detail your site's privacy policy.</p>
+<!DOCTYPE html>
+<html lang="@(Model.IsGerman ? "de" : "en")" data-theme="light">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>@(Model.IsGerman ? "Datenschutz" : "Privacy") — @(Model.IsGerman ? "Zürich Baumverwaltung" : "Zurich Tree Management")</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500;600&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="~/css/app.css" asp-append-version="true" />
+    <script>(function () { if (localStorage.getItem('zurich-theme') === 'dark') document.documentElement.setAttribute('data-theme', 'dark'); })();</script>
+</head>
+<body class="page page--doc">
+    @{ ViewData["Active"] = "privacy"; }
+    <partial name="_TopBar" />
+    <main class="doc doc--prose">
+        @if (Model.IsGerman)
+        {
+            <p class="eyebrow">Datenschutz</p>
+            <h1>Wie diese Anwendung mit Ihren Daten umgeht</h1>
+            <p class="lead">Dies ist ein unabhängiger Forschungsprototyp, nicht ein Dienst der Stadt Zürich. Er dient Lehre und Forschung und ist nicht für echte Meldungen gedacht.</p>
+            <h2>Was gespeichert wird</h2>
+            <ul>
+                <li><strong>Ihre Meldung:</strong> Anliegen, Beschreibung, gewählter Baum (Baumnummer und Angaben aus dem offenen Baumkataster) und Standort.</li>
+                <li><strong>Ihre Kontaktdaten:</strong> Vorname, Nachname, E-Mail und optional Telefon — nur, um Rückfragen zur Meldung zu ermöglichen.</li>
+            </ul>
+            <h2>Wer Ihre Kontaktdaten sieht</h2>
+            <p>Nur angemeldete Mitarbeitende. Die öffentliche Karte, die Verfolgungsseite und die Programmierschnittstelle zeigen nie, wer eine Meldung gemacht hat; interne Notizen der Mitarbeitenden sind ebenfalls nicht öffentlich. Diese Regel wird auf dem Server durchgesetzt und automatisch getestet.</p>
+            <h2>Wo die Daten liegen</h2>
+            <p>In einer SQL-Server-Datenbank der jeweiligen Installation. Die Kartendarstellung lädt Kacheln von Google Maps und Baumdaten vom Open-Data-Dienst der Stadt Zürich; dabei sehen diese Dienste Ihre IP-Adresse, aber nicht Ihre Kontaktdaten.</p>
+            <h2>Missbrauchsschutz</h2>
+            <p>Pro Netzwerkadresse sind nur wenige Meldungen und Anmeldeversuche pro Zeitraum möglich.</p>
+            <h2>Ihre Rechte</h2>
+            <p>Sie können Auskunft, Berichtigung oder Löschung Ihrer Angaben verlangen. In einem echten Einsatz müsste die betreibende Stelle hier ihre Kontaktadresse und Aufbewahrungsfristen nennen.</p>
+        }
+        else
+        {
+            <p class="eyebrow">Privacy</p>
+            <h1>How this application handles your data</h1>
+            <p class="lead">This is an independent research demonstrator, not a City of Zürich service. It exists for teaching and research and is not meant for real reports.</p>
+            <h2>What is stored</h2>
+            <ul>
+                <li><strong>Your report:</strong> the issue, your description, the tree you chose (tree number and details from the open tree register) and its location.</li>
+                <li><strong>Your contact details:</strong> first name, last name, e-mail and optionally phone — only so staff can follow up on the report.</li>
+            </ul>
+            <h2>Who can see your contact details</h2>
+            <p>Signed-in staff only. The public map, the tracking page and the programming interface never reveal who filed a request, and staff-internal notes are not public either. The rule is enforced on the server and covered by automated tests.</p>
+            <h2>Where the data lives</h2>
+            <p>In the SQL Server database of the installation. To draw the map, your browser loads tiles from Google Maps and tree data from the City of Zürich open-data service; those services see your IP address but never your contact details.</p>
+            <h2>Abuse protection</h2>
+            <p>Each network address can send only a few reports and sign-in attempts per period.</p>
+            <h2>Your rights</h2>
+            <p>You can ask for access to, correction of, or deletion of your details. A real deployment would name the responsible office, its contact address and retention periods here.</p>
+        }
+    </main>
+    <script src="~/js/i18n.js" asp-append-version="true"></script>
+    <script src="~/js/header-controls.js" asp-append-version="true"></script>
+</body>
+</html>

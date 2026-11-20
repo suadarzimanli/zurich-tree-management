@@ -1,19 +1,14 @@
-﻿using Microsoft.AspNetCore.Mvc;
-using Microsoft.AspNetCore.Mvc.RazorPages;
+﻿using Microsoft.AspNetCore.Mvc.RazorPages;
 
 namespace ZurichTreeManagement.Web.Pages;
 
 public class PrivacyModel : PageModel
 {
-    private readonly ILogger<PrivacyModel> _logger;
-
-    public PrivacyModel(ILogger<PrivacyModel> logger)
-    {
-        _logger = logger;
-    }
+    public string Culture { get; private set; } = "en";
+    public bool IsGerman => Culture.StartsWith("de", StringComparison.OrdinalIgnoreCase);
 
     public void OnGet()
     {
+        Culture = Request.Cookies["ZurichCulture"] ?? "en";
     }
 }
-

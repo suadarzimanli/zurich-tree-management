@@ -14,3 +14,6 @@ Thumbs.db
 **/appsettings.Development.local.json
 **/.env
 **/.env.*
+
+## Analysis input data (download with analysis/download_data.py)
+analysis/data/*.geojson

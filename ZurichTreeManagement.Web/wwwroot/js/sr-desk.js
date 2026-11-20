@@ -114,13 +114,14 @@
     }
 
     function phaseLabel(phase) {
+        // Same short labels as the journey bar (Received / Inspection / Work order / Closed)
         var map = {
-            sr: 'filter.phase.sr',
-            inspection: 'filter.phase.inspection',
-            workorder: 'filter.phase.workorder',
-            closed: 'filter.phase.closed'
+            sr: 'phase.received',
+            inspection: 'phase.inspection',
+            workorder: 'phase.workorder',
+            closed: 'phase.closed'
         };
-        return t(map[phase] || 'filter.phase.sr');
+        return t(map[phase] || 'phase.received');
     }
 
     function formatDate(iso) {
@@ -392,7 +393,29 @@
         return qs ? base + '?' + qs : base;
     }
 
+    /** Queue overview (caseload research: show volume, urgency and aging up front). */
+    function renderKpis() {
+        var el = byId('desk-kpis');
+        var ph = global.ZurichPhase;
+        if (!el) return;
+        var open = items.filter(function (r) { return r.phase !== 'closed'; });
+        var count = function (fn) { return items.filter(fn).length; };
+        var oldest = open.reduce(function (m, r) { return Math.max(m, ph ? ph.daysOpen(r.openedAtUtc, r.closedDate) : 0); }, 0);
+        var tiles = [
+            ['kpi.open', open.length, ''],
+            ['kpi.urgent', open.filter(function (r) { return r.priority === 'Urgent'; }).length, 'kpi--urgent'],
+            ['kpi.inspection', count(function (r) { return r.phase === 'inspection'; }), 'kpi--inspection'],
+            ['kpi.workorder', count(function (r) { return r.phase === 'workorder'; }), 'kpi--workorder'],
+            ['kpi.closed', count(function (r) { return r.phase === 'closed'; }), 'kpi--closed'],
+            ['kpi.oldest', open.length ? t('kpi.days', { days: oldest }) : '—', oldest > 14 ? 'kpi--stale' : '']
+        ];
+        el.innerHTML = tiles.map(function (k) {
+            return '<div class="kpi ' + k[2] + '"><span class="kpi__value">' + escapeHtml(k[1]) + '</span><span class="kpi__label">' + escapeHtml(t(k[0])) + '</span></div>';
+        }).join('');
+    }
+
     function renderList() {
+        renderKpis();
         var body = byId('sr-desk-table-body');
         if (!body) return;
         body.innerHTML = '';
@@ -415,12 +438,16 @@
             card.setAttribute('role', 'listitem');
             card.setAttribute('aria-label', 'SR ' + row.srNumber);
 
-            var title = row.subArea || row.requestType || '';
+            var reqApi = i18nApi();
+            var title = row.requestType ? (reqApi.translateRequestType ? reqApi.translateRequestType(row.requestType) : row.requestType) : (row.subArea || '');
             var subParts = [];
             if (row.linkedTreeBaumnummer) subParts.push(t('field.linkedTree') + ' ' + row.linkedTreeBaumnummer);
+            if (row.address) subParts.push(String(row.address).split(',')[0]);
             if (row.contactName) subParts.push(row.contactName);
             if (row.assignedTo) subParts.push(row.assignedTo);
-            subParts.push(formatDate(row.openedAtUtc));
+            var ph = global.ZurichPhase;
+            var ageText = ph ? ph.ageText(row.openedAtUtc, row.closedDate) : formatDate(row.openedAtUtc);
+            var stale = ph && phase !== 'closed' && ph.daysOpen(row.openedAtUtc, row.closedDate) > 14;
 
             var priorityHtml = row.priority === 'Urgent'
                 ? '<span class="desk-sr-card__urgent">' + escapeHtml(t('filter.priority.urgent')) + '</span>'
@@ -435,7 +462,9 @@
                 + '</div>'
                 + '<p class="desk-sr-card__title">' + escapeHtml(title) + priorityHtml + '</p>'
                 + '<p class="desk-sr-card__meta">' + escapeHtml(subParts.join(' · ')) + '</p>'
+                + '<p class="desk-sr-card__age' + (stale ? ' desk-sr-card__age--stale' : '') + '">' + escapeHtml(ageText) + '</p>'
                 + '</div>';
+            if (row.priority === 'Urgent') card.classList.add('desk-sr-card--urgent');
 
             card.addEventListener('click', function () { selectSr(row.srNumber); });
             card.addEventListener('keydown', function (ev) {
@@ -534,8 +563,14 @@
             if (d.subArea) metaParts.push(d.subArea);
             if (d.linkedTreeBaumnummer) metaParts.push(t('field.linkedTree') + ' ' + d.linkedTreeBaumnummer);
             if (d.openedAtUtc) metaParts.push(formatDate(d.openedAtUtc));
+            if (global.ZurichPhase) metaParts.push(global.ZurichPhase.ageText(d.openedAtUtc, d.closedDate));
             heroMeta.textContent = metaParts.join(' · ');
         }
+        if (global.ZurichPhase) global.ZurichPhase.render(byId('desk-journey'), phase);
+        var hiddenNote = byId('desk-contact-hidden');
+        if (hiddenNote) hiddenNote.hidden = !d.contactRedacted;
+        var contactGrid = byId('desk-contact-grid');
+        if (contactGrid) contactGrid.hidden = !!d.contactRedacted;
 
         setControlValue('desk-sr-status', d.status || 'In Progress');
         setControlValue('desk-sr-substatus', d.subStatus);

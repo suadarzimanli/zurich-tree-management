@@ -466,9 +466,9 @@ public sealed class WorkflowService
                     s.LinkedTreeBaumnummer.Contains(term)
                     || (s.Address != null && s.Address.Contains(term))
                     || (s.Description != null && s.Description.Contains(term))
-                    || s.ContactFirstName.Contains(term)
-                    || s.ContactLastName.Contains(term)
-                    || (s.ContactEmail != null && s.ContactEmail.Contains(term))
+                    || (filter.IncludeContactSearch && s.ContactFirstName.Contains(term))
+                    || (filter.IncludeContactSearch && s.ContactLastName.Contains(term))
+                    || (filter.IncludeContactSearch && s.ContactEmail != null && s.ContactEmail.Contains(term))
                     || s.RequestType.Contains(term));
             }
         }

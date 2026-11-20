@@ -4,13 +4,12 @@ public sealed class DemoAuthOptions
 {
     public const string SectionName = "DemoAuth";
 
-    public bool Enabled { get; set; } = true;
+    /// <summary>Off unless configuration turns it on (appsettings.Development.json does).</summary>
+    public bool Enabled { get; set; }
 
-    public List<DemoAuthUser> Users { get; set; } = new()
-    {
-        new DemoAuthUser { Login = "admin", Password = "Demo2024!", DisplayName = "Administrator", Role = "Admin" },
-        new DemoAuthUser { Login = "user", Password = "Demo2024!", DisplayName = "Field User", Role = "User" }
-    };
+    /// <summary>Demo accounts come from configuration only (a non-empty default list would be
+    /// merged with the configured one and duplicate every user).</summary>
+    public List<DemoAuthUser> Users { get; set; } = new();
 }
 
 public sealed class DemoAuthUser

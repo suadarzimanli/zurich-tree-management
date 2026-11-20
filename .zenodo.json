@@ -1,0 +1,8 @@
+{
+  "title": "Zurich Tree Management: tree-anchored service requests and a city-wide location-ambiguity analysis",
+  "upload_type": "software",
+  "description": "Research demonstrator (ASP.NET Core) for urban-tree service requests anchored to the tree in the City of Zürich open tree cadastre: resident reporting in four steps, public tracking without personal data, a staff desk, and privacy enforced at the API boundary. Includes the analysis code (81,403 trees, 59,330 addresses) comparing street-only, address-only and map-based intake and four map-selection rules under simulated touch error, and the accompanying paper. Independent academic work, not affiliated with the City of Zürich.",
+  "creators": [{ "name": "Arzimanli, Suad", "affiliation": "University of Łódź" }],
+  "license": "MIT",
+  "keywords": ["urban forestry", "service requests", "open government data", "web GIS", "location ambiguity", "privacy by design", "Zürich"]
+}

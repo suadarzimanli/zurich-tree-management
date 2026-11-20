@@ -17,7 +17,7 @@ public sealed class InspectionController : ControllerBase
     public async Task<ActionResult<InspectionDto>> GetBySr(long srNumber, CancellationToken cancellationToken)
     {
         var inspection = await _workflow.GetInspectionBySrAsync(srNumber, cancellationToken);
-        return inspection is null ? NotFound() : Ok(inspection);
+        return inspection is null ? NotFound() : Ok(PublicRedaction.Apply(inspection, User));
     }
 
     [Authorize]

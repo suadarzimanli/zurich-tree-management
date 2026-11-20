@@ -53,14 +53,16 @@
         var enBtn = byId('lang-toggle-en');
         var deBtn = byId('lang-toggle-de');
         var i18n = global.ZurichI18n;
-        var onAboutPage = global.location.pathname.toLowerCase().indexOf('/about') >= 0;
+        // Pages whose text is rendered on the server must reload to switch language.
+        var path = global.location.pathname.toLowerCase();
+        var onServerRenderedPage = path.indexOf('/about') >= 0 || path.indexOf('/privacy') >= 0;
 
         function applyLang(locale) {
             if (i18n && typeof i18n.setLocale === 'function') {
                 i18n.setLocale(locale);
             }
             updateLangButtons(locale);
-            if (onAboutPage) {
+            if (onServerRenderedPage) {
                 global.location.reload();
                 return;
             }
@@ -75,6 +77,29 @@
 
         if (enBtn) enBtn.addEventListener('click', function () { applyLang('en'); });
         if (deBtn) deBtn.addEventListener('click', function () { applyLang('de'); });
+
+        initMenu();
+    }
+
+    // Narrow screens: navigation, settings and sign-in collapse behind one menu button.
+    function initMenu() {
+        var bar = byId('topbar');
+        var btn = byId('topbar-menu-btn');
+        if (!bar || !btn) return;
+        function setOpen(open) {
+            bar.classList.toggle('topbar--open', open);
+            btn.setAttribute('aria-expanded', open ? 'true' : 'false');
+        }
+        btn.addEventListener('click', function (ev) {
+            ev.stopPropagation();
+            setOpen(!bar.classList.contains('topbar--open'));
+        });
+        document.addEventListener('click', function (ev) {
+            if (bar.classList.contains('topbar--open') && !bar.contains(ev.target)) setOpen(false);
+        });
+        document.addEventListener('keydown', function (ev) {
+            if (ev.key === 'Escape' && bar.classList.contains('topbar--open')) { setOpen(false); btn.focus(); }
+        });
     }
 
     global.ZurichHeaderControls = { init: init, setTheme: setTheme, getTheme: getTheme };

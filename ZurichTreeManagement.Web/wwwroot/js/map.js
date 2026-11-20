@@ -554,6 +554,14 @@
             setMapType: function (type) {
                 if (mapInstance && type) mapInstance.setMapTypeId(type);
             },
+            getZoom: function () { return mapInstance ? mapInstance.getZoom() : null; },
+            minClickZoom: function () { return TREE_CLICK_MIN_ZOOM; },
+            /** Centre on a point (or the current centre) at a given zoom. */
+            focus: function (lat, lng, zoom) {
+                if (!mapInstance) return;
+                if (lat != null && lng != null) mapInstance.panTo({ lat: lat, lng: lng });
+                if (zoom != null) mapInstance.setZoom(zoom);
+            },
             panTo: function (latLng) {
                 if (!mapInstance || !latLng) return;
                 if (typeof latLng.lat === 'function') mapInstance.panTo(latLng);

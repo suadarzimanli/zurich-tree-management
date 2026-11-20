@@ -25,6 +25,10 @@ public static class ZurichRequestTopics
         "Broken or hanging branch"
     };
 
+    /// <summary>The request types citizens may submit (server-side allow-list).</summary>
+    public static bool IsKnown(string? requestType) =>
+        !string.IsNullOrWhiteSpace(requestType) && RequestTypeToSubArea.ContainsKey(requestType.Trim());
+
     public static string ResolveSubArea(string? requestType)
     {
         var key = (requestType ?? "").Trim();

@@ -19,7 +19,7 @@ public sealed class ActivityController : ControllerBase
     {
         var list = await _activities.GetActivitiesAsync(srNumber, cancellationToken);
         var plan = await _activities.GetPlanProgressAsync(srNumber, cancellationToken);
-        return Ok(new { activities = list, plan });
+        return Ok(new { activities = PublicRedaction.Apply(list, User), plan });
     }
 
     [Authorize]
